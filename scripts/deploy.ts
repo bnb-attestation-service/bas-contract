@@ -12,7 +12,6 @@ async function main() {
   const registrySchema = await deployRegistry();
   const eas = await deployEAS(registrySchema);
   await initSchema(registrySchema);
-  await initSchema("0x5e905F77f59491F03eBB78c204986aaDEB0C6bDa");
   await initSchemaName(eas);
   await deployEIP712(eas);
   await deployIndexer(eas);

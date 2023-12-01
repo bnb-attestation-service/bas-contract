@@ -1,10 +1,9 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 
-const BNB_TEST_RPC = 'https://data-seed-prebsc-1-s1.binance.org:8545/';
-const BNB_RPC = 'https://bsc.nodereal.io';
-
 const PRIVATE_KEY = process.env.PRIVATE_KEY as string;
+const BNB_RPC = process.env.BNB_RPC as string;
+const BNB_TEST_RPC = process.env.BNB_TEST_RPC
 
 const config: HardhatUserConfig = {
   solidity: {
