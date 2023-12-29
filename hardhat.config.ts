@@ -1,9 +1,12 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-verify";
+
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY as string;
 const BNB_RPC = process.env.BNB_RPC as string;
-const BNB_TEST_RPC = process.env.BNB_TEST_RPC
+const BNB_TEST_RPC = process.env.BNB_TEST_RPC as string;
+const API_KEY = process.env.API_KEY as string;
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -29,6 +32,9 @@ const config: HardhatUserConfig = {
       url: BNB_RPC,
       accounts:[PRIVATE_KEY]
     }
+  },
+  etherscan:{
+    apiKey: API_KEY
   }
 };
 
