@@ -7,6 +7,8 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY as string;
 const BNB_RPC = process.env.BNB_RPC as string;
 const BNB_TEST_RPC = process.env.BNB_TEST_RPC as string;
 const API_KEY = process.env.API_KEY as string;
+const OPBNB_RPC = process.env.OPBNB_RPC as string;
+const OPBNB_TEST_RPC = process.env.OPBNB_TEST_RPC as string
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -31,10 +33,34 @@ const config: HardhatUserConfig = {
       chainId:56,
       url: BNB_RPC,
       accounts:[PRIVATE_KEY]
+    },
+    ["opBNB"]:{
+      chainId: 204,
+      url: OPBNB_RPC,
+      accounts: [PRIVATE_KEY],
+      gasPrice: 15
+    },
+    ["opBNB-test"]:{
+      chainId: 5611,
+      url: OPBNB_TEST_RPC,
+      accounts: [PRIVATE_KEY],
+      gasPrice: 10008
     }
   },
   etherscan:{
-    apiKey: API_KEY
+    apiKey: {
+        opBNB:API_KEY,
+    },
+    customChains: [
+      {
+        network: "opBNB",
+        chainId: 204,
+        urls: {
+          apiURL: "https://api-opbnb.bscscan.com/api",
+          browserURL: "https://opbnb.bscscan.com/"
+        }
+      }
+    ]
   }
 };
 

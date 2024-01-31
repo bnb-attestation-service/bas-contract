@@ -9,12 +9,14 @@ import deployIndexer from "./6-indexer";
 
 
 async function main() {
-  const registrySchema = await deployRegistry();
-  const eas = await deployEAS(registrySchema);
-  await initSchema(registrySchema);
-  await initSchemaName(eas);
+  // const registrySchema = await deployRegistry();
+  // const eas = await deployEAS(registrySchema);
+  // const registrySchema = "0x65CFBDf1EA0ACb7492Ecc1610cfBf79665DC631B" as string
+  const eas = "0x5e905F77f59491F03eBB78c204986aaDEB0C6bDa" as string
+  // await initSchema(registrySchema);
+  // await initSchemaName(eas);
   await deployEIP712(eas);
-  await deployIndexer(eas);
+  // await deployIndexer(eas);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

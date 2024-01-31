@@ -37,6 +37,20 @@ Current deployed contracts are:
 - Schema Registry contract: `0x08C8b8417313fF130526862f90cd822B55002D72`
 - Delegate contract: `0x3b32B97092f09Ad34E5766e239e4C2F76b0DEe43`
 
+### opBNB Mainnet
+
+- BAS contract: `0x5e905F77f59491F03eBB78c204986aaDEB0C6bDa`
+- Schema Registry contract: `0x65CFBDf1EA0ACb7492Ecc1610cfBf79665DC631B`
+- Delegate contract: `0x2F086b84b6840e902E1745A94DA648D61B0252B0`
+- Indexer : `0x2DA65798a0BA6E5f2D457F4A99890843a7C02aFe`
+
+### opBNB Testnet
+
+- BAS contract: `0x5e905F77f59491F03eBB78c204986aaDEB0C6bDa`
+- Schema Registry contract: `0x65CFBDf1EA0ACb7492Ecc1610cfBf79665DC631B`
+- Delegate contract: `0x8F6b5B3FFf1899A1107a1338b176f54ab72f27B9`
+- Indexer : `0x96Fd40E6EA6826b0336C8018D646a6255a58b618`
+
 ## More Information
 
 You can get more information in [BAS Doc](https://github.com/ridoio/bas-js-sdk).
