@@ -13,7 +13,7 @@ import {
     MultiDelegatedProxyRevocationRequest
 } from "../EIP712Proxy.sol";
 
-import { IEAS } from "../../../IEAS.sol";
+import { IEAS,AttestationRequestData } from "../../../IEAS.sol";
 
 import { AccessDenied, uncheckedInc } from "../../../Common.sol";
 
@@ -75,31 +75,5 @@ contract PermissionedEIP712Proxy is EIP712Proxy, Ownable {
         if (attester != owner()) {
             revert AccessDenied();
         }
-    }
-
-    function verifyAttestation(DelegatedProxyAttestationRequest calldata request) public view returns (bool pass){
-
-    }
-
-    bytes32 public constant ATTEST_PROXY_TYPEHASH = 0xea02ffba7dcb45f6fc649714d23f315eef12e3b27f9a7735d8d8bf41eb2b1af1;
-
-    function getTypedData( DelegatedProxyAttestationRequest calldata request) 
-        public
-        view
-        returns (bytes32 typedData){
-        return super._hashTypedDataV4(keccak256(
-                abi.encode(
-                    ATTEST_PROXY_TYPEHASH,
-                    request.attester,
-                    request.schema,
-                    request.data.recipient,
-                    request.data.expirationTime,
-                    request.data.revocable,
-                    request. data.refUID,
-                    keccak256( request.data.data),
-                    request.data.value,
-                    request.deadline
-                )
-            ));
     }
 }
