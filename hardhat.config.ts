@@ -2,6 +2,9 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-verify";
 
+import * as dotenv from "dotenv";
+dotenv.config();
+
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY as string;
 const BNB_RPC = process.env.BNB_RPC as string;
@@ -50,6 +53,7 @@ const config: HardhatUserConfig = {
   etherscan:{
     apiKey: {
         opBNB:API_KEY,
+        "opBNB-test":API_KEY
     },
     customChains: [
       {
@@ -58,6 +62,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api-opbnb.bscscan.com/api",
           browserURL: "https://opbnb.bscscan.com/"
+        }
+      },
+      {
+        network: "opBNB-test",
+        chainId: 5611,
+        urls: {
+          apiURL: "https://api-opbnb-testnet.bscscan.com/api",
+          browserURL: "https://opbnb-testnet.bscscan.com/"
         }
       }
     ]

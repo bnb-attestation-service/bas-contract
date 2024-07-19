@@ -19,6 +19,7 @@ async function main() {
   // await deployIndexer(eas);
 }
 
+
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 main().catch((error) => {

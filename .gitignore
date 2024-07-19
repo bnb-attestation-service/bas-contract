@@ -64,6 +64,7 @@ coverage
 coverage.json
 typechain
 typechain-types
+/contracts/BAS.sol
 
 # Hardhat files
 cache
