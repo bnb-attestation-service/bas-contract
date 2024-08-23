@@ -1,6 +1,11 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "@typechain/hardhat";
+import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-verify";
+import "@nomicfoundation/hardhat-chai-matchers";
+import "@openzeppelin/hardhat-upgrades";
+
 
 import * as dotenv from "dotenv";
 dotenv.config();
@@ -70,6 +75,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api-opbnb-testnet.bscscan.com/api",
           browserURL: "https://opbnb-testnet.bscscan.com/"
+        }
+      },
+      {
+        network: "bnb-test",
+        chainId: 97,
+        urls: {
+          apiURL: "https://api-testnet.bscscan.com/api",
+          browserURL: "https://testnet.bscscan.com/"
         }
       }
     ]

@@ -1,6 +1,5 @@
 import { ethers } from "hardhat";
 
-
 async function main() {
   const eas = "0x5e905F77f59491F03eBB78c204986aaDEB0C6bDa" as string
   // await initSchema(registrySchema);
@@ -21,7 +20,7 @@ async function main() {
         1_000_000_000,
         1_000_000_000,
         addr
-  );   
+  );  
 
   const raddr = resolver.getAddress();
   await resolver.waitForDeployment();
