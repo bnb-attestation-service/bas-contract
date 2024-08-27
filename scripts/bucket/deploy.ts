@@ -85,7 +85,7 @@ async function deployBucketManager(_factory: string,salt: string) {
     return _bucketManager
 }
 
-async function deployBucketManagerWithInit(_factory: string) {
+async function deployBucketManagerWithInit(_factory: string, salt: string) {
     const [signer] = await ethers.getSigners();
     
     const factory = BucketFactory__factory.connect(_factory,signer)
@@ -94,7 +94,6 @@ async function deployBucketManagerWithInit(_factory: string) {
     const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN));
     const [relayFee, ackRelayFee] = await crossChain.getRelayFees();
 
-    const salt = ethers.hashMessage("test-salt-1");
     const transferOutAmt = ethers.parseEther('0.01');
 
     const value = transferOutAmt + 4n * relayFee+ 3n * ackRelayFee;
@@ -329,23 +328,25 @@ async function getControlledManagers(_registry: string) {
 async function main() {
     // const registry = await deployRegistry()
     const registry = "0x4eaaed0dC1b80D7df449a8f7A1418CCD8F6797C2"
+
     // const factory = await deployFactory(registry)
     const factory = "0xa57416E874E3465a5027D2cb39149051E2667a73"
+
     // await setFactoryAddressForRegistry(registry,factory)
-    // await deployBucketManagerWithInit(factory)
-    // const salt = ethers.hashMessage("test-salt-212asf3")
+    const salt = ethers.hashMessage("test-salt-212asdfaadsfasf3")
+    await deployBucketManagerWithInit(factory,salt)
     // const manager = await deployBucketManager(factory,salt)
 
     // await getControlledManagers(registry)
-    const manager = "0x7D4C9D2d250A3730D087A17F605380AE57DDe7ca"
+    // const manager = "0x7D4C9D2d250A3730D087A17F605380AE57DDe7ca"
 
-    const schemaId = "0xacc308075dabd756f3806f0f2a0d919d12b13597ba4791de96283aa646c2c5b5";
-    const name = "testa"
+    // const schemaId = "0xacc308075dabd756f3806f0f2a0d919d12b13597ba4791de96283aa646c2c5b5";
+    // const name = "testa"
     // await createBucket(manager,name,schemaId)
     
     const eoa = "0xF7a381D4c5753775757D3445aBdc2cdFCA1b5BB4"
-    await createUserPolicy(manager,eoa)
-    await createSchemaPolicy(manager,eoa,name,schemaId)
+    // await createUserPolicy(manager,eoa)
+    // await createSchemaPolicy(manager,eoa,name,schemaId)
   }
   // We recommend this pattern to be able to use async/await everywhere
   // and properly handle errors.
