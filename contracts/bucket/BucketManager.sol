@@ -34,6 +34,9 @@ contract BucketManager is Semver, Ownable{
     address public  permission_hub;
     address public  sp_address_testnet;
     address public  greenfield_executor;
+    address public  deployer;
+
+    bool public initialed;
 
 
     event CreateSchemaBucket(address indexed creator, bytes32 indexed schemaId, string name);
@@ -50,10 +53,11 @@ contract BucketManager is Semver, Ownable{
 
 
     function _getName(string memory name, bytes32 schemaId) public view returns (string memory){
-         if (schemaId == bytes32(0)) {
-            return string(abi.encodePacked("bas-", Strings.toHexString(msg.sender)));
+        if (schemaId == bytes32(0)) {
+            return string(abi.encodePacked("bas-", Strings.toHexString(address(this))));
         }
-        return string(abi.encodePacked("bas-", name,"-",Strings.toHexString(uint256(schemaId))));
+        require(bytes(name).length < 18, "length of name should < 18");
+        return string(abi.encodePacked("bas-", name,"-",toHexString(bytes20(schemaId))));
     }
     constructor (
         address _controller,
@@ -79,10 +83,26 @@ contract BucketManager is Semver, Ownable{
         permission_hub = _permission_hub;
         sp_address_testnet = _sp_address_testnet;
         greenfield_executor = _greenfield_executor;
-
+        deployer = msg.sender;
         _transferOwnership(_controller);
     }
 
+    function initial(bytes calldata _executorData,bytes calldata _createPolicyData,uint256 transferOutAmount) external payable{
+        (uint256 relayFee, uint256 ackRelayFee) = ICrossChain(cross_chain).getRelayFees();
+
+        if (_executorData.length == 0)  {
+            require(msg.value == transferOutAmount + 3 * relayFee + 3 * ackRelayFee, "without exec data msg.value not enough");
+        } else {
+            require(msg.value == transferOutAmount + 4 * relayFee + 3 * ackRelayFee, "with exec data msg.value not enough");
+        } 
+
+        require(msg.sender == deployer,"only deploy can init the contract");
+        require(!initialed,"this contract has been initialed");
+        _createUserBucket(_executorData,relayFee,ackRelayFee);
+        _createUserPolicy(_createPolicyData,relayFee,ackRelayFee);
+        _topUpBNB(transferOutAmount,relayFee,ackRelayFee);
+        initialed = true; 
+    }
     function createSchemaBucket(
 		string memory name,
 		bytes32 schemaId, 
@@ -92,13 +112,20 @@ contract BucketManager is Semver, Ownable{
         require(bytes(name).length != 0, "Invalid Name: Name should not be empty");
 		require(schemaBuckets[schemaId][name] == false,"The bucket of the given schema and name has exsited");
 
+        (uint256 relayFee, uint256 ackRelayFee) = ICrossChain(cross_chain).getRelayFees();
+        if (_executorData.length == 0)  {
+            require(msg.value == relayFee + ackRelayFee, "msg.value not enough");
+        } else {
+            require(msg.value == relayFee * 2 + ackRelayFee, "msg.value not enough");
+        } 
+
         string memory bucketName = _getName(name,schemaId);
         require(!IBucketRegistry(bucketRegistry).existBucketName(bucketName), "The name of bucket for schema has existed");
 		SchemaRecord memory schema = ISchemaRegistry(schemaRegistry).getSchema(schemaId);
 		require(schema.uid != bytes32(0),"Invalid schemaId");
         
         // Create the bucket
-		_createBucket(bucketName,_executorData);
+		_createBucket(bucketName,_executorData,relayFee,ackRelayFee);
         schemaBuckets[schemaId][name] = true;
         bucketNames.push(bucketName);
         nameOfSchemaId[schemaId].push(name);
@@ -110,11 +137,25 @@ contract BucketManager is Semver, Ownable{
 	function createUserBucket(
 		bytes memory _executorData
 	) external payable onlyOwner returns (string memory){
+        (uint256 relayFee, uint256 ackRelayFee) = ICrossChain(cross_chain).getRelayFees();
+        if (_executorData.length == 0)  {
+            require(msg.value == relayFee + ackRelayFee, "msg.value not enough");
+        } else {
+            require(msg.value == relayFee * 2 + ackRelayFee, "msg.value not enough");
+        } 
+	   return _createUserBucket(_executorData,relayFee,ackRelayFee);
+    }
+
+    function _createUserBucket(
+		bytes memory _executorData, 
+        uint256 relayFee, 
+        uint256 ackRelayFee
+	) internal returns (string memory){
 	    require(!basBucket,"The bas bucket for current contract has existed");
 	    string memory bucketName = _getName("",bytes32(0));
         require(!IBucketRegistry(bucketRegistry).existBucketName(bucketName), "The name of bucket for schema has existed");
 
-	    _createBucket(bucketName,_executorData);
+	    _createBucket(bucketName,_executorData,relayFee,ackRelayFee);
 	    basBucket = true;
         bucketNames.push(bucketName);
         IBucketRegistry(bucketRegistry).setBucketName(bucketName);
@@ -125,16 +166,10 @@ contract BucketManager is Semver, Ownable{
     
     function _createBucket(
         string memory bucketName,
-        bytes memory _executorData
+        bytes memory _executorData,
+        uint256 relayFee, 
+        uint256 ackRelayFee
     ) internal {
-        (uint256 relayFee, uint256 ackRelayFee) = ICrossChain(cross_chain).getRelayFees();
-
-        if (_executorData.length == 0)  {
-            require(msg.value == relayFee + ackRelayFee, "msg.value not enough");
-        } else {
-            require(msg.value == relayFee * 2 + ackRelayFee, "msg.value not enough");
-        } 
-
        if (_executorData.length > 0) {
          // 2. set bucket flow rate limit
             uint8[] memory _msgTypes = new uint8[](1);
@@ -169,21 +204,25 @@ contract BucketManager is Semver, Ownable{
     }
 
     function createUserPolicy(bytes calldata createPolicyData) external payable onlyOwner {
-        require ( basBucket == true, "The bucket of this contract is not created");
-		bool result = IPermissionHub(permission_hub).createPolicy{ value: msg.value }(createPolicyData);   
+        (uint256 relayFee, uint256 ackRelayFee) = ICrossChain(cross_chain).getRelayFees();
+        _createUserPolicy(createPolicyData,relayFee,ackRelayFee);
+    }
+
+    function _createUserPolicy(bytes calldata createPolicyData,uint256 relayFee, uint256 ackRelayFee) internal {
+        require (basBucket == true, "The bucket of this contract is not created");
+		bool result = IPermissionHub(permission_hub).createPolicy{ value: relayFee + ackRelayFee }(createPolicyData);   
         require(result,"fail to create policy");
         emit CreateUserPolicy(createPolicyData);
     }
 
     function topUpBNB(uint256 transferOutAmount) external payable {
-        _topUpBNB(transferOutAmount);
+        (uint256 relayFee, uint256 ackRelayFee) = ICrossChain(cross_chain).getRelayFees();
+        require(msg.value == transferOutAmount + relayFee + ackRelayFee, "msg.value not enough");
+        _topUpBNB(transferOutAmount,relayFee,ackRelayFee);
     }
 
 
-    function _topUpBNB(uint256 transferOutAmount) internal {
-        (uint256 relayFee, uint256 ackRelayFee) = ICrossChain(cross_chain).getRelayFees();
-        require(msg.value == transferOutAmount + relayFee + ackRelayFee, "msg.value not enough");
-
+    function _topUpBNB(uint256 transferOutAmount,uint256 relayFee, uint256 ackRelayFee) internal {
         bool result = ITokenHub(tokenHub).transferOut{ value: transferOutAmount + relayFee + ackRelayFee }(
             address(this),
             transferOutAmount
@@ -206,6 +245,17 @@ contract BucketManager is Semver, Ownable{
 
     function getName(string memory name, bytes32 schemaId) public view returns (string memory){
         return _getName(name, schemaId);
+    }
+
+    function toHexString(bytes20 data) public pure returns (string memory) {
+        bytes memory alphabet = "0123456789abcdef";
+        bytes memory str = new bytes(40); // 每个字节对应两个十六进制字符
+
+        for (uint256 i = 0; i < 20; i++) {
+            str[2 * i] = alphabet[uint8(data[i] >> 4)]; // 获取高4位
+            str[2 * i + 1] = alphabet[uint8(data[i] & 0x0f)]; // 获取低4位
+        }
+        return string(str);
     }
     
 }

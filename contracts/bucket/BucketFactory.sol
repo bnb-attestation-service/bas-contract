@@ -22,13 +22,13 @@ contract BucketFactory is Initializable{
     address public  sp_address_testnet;
     address public  greenfield_executor;
 
-    uint256 private immutable _major = 1;
+    uint256 constant _major = 1;
 
     // Contract's minor version number.
-    uint256 private  immutable _minor = 0;
+    uint256 constant _minor = 0;
 
     // Contract's patch version number.
-    uint256 private  immutable _path = 0;
+    uint256 constant _path = 0;
 
     /// @notice Returns the full semver contract version.
     /// @return Semver contract version as a string.
@@ -88,4 +88,62 @@ contract BucketFactory is Initializable{
         bucketManager.topUpBNB{value:msg.value}(transferOutAmount);
         return address(bucketManager);
     }
+
+    function deployWithInit(
+        uint256 transferOutAmount,
+        bytes calldata _executorData,
+        bytes calldata _createPolicyData,
+        bytes32 _salt
+    ) public payable
+      returns(address)
+    {   
+        BucketManager bucketManager =  new BucketManager{salt:_salt}
+        (
+            msg.sender,
+            bucketRegistry,
+            schemaRegistry,
+            tokenHub,
+            cross_chain,
+            bucket_hub,
+            permission_hub,
+            sp_address_testnet,
+            greenfield_executor,
+
+            _major,
+            _minor ,
+            _path
+        );
+
+        IBucketRegistry(bucketRegistry).addBucketManager( address(bucketManager));
+        emit CreateBucketManager(msg.sender, address(bucketManager));
+        bucketManager.initial{value:msg.value}(_executorData,_createPolicyData,transferOutAmount);
+        return address(bucketManager);
+    }
+
+    function _getBytecodeHash() internal view returns (bytes32) {
+        bytes memory bytecode = type(BucketManager).creationCode;
+        return keccak256(abi.encodePacked(bytecode, abi.encode(msg.sender,
+            bucketRegistry,
+            schemaRegistry,
+            tokenHub,
+            cross_chain,
+            bucket_hub,
+            permission_hub,
+            sp_address_testnet,
+            greenfield_executor,
+            _major,
+            _minor ,
+            _path)));
+    }
+
+    function getManagerAddress(bytes32 _salt) public view returns (address) {
+    bytes32 addrHash = keccak256(abi.encodePacked(
+        bytes1(0xff), // 这里可以写 hex'ff'  不能写 "0xff"
+        address(this), // 这里是调用create2的合约，在本文中就是当前的Factory合约
+        _salt, // 盐值
+        _getBytecodeHash() // 这里可以提前进行 keccak256 后写到这里，写法是 bytes32(0xABC...) 或 hex'ABC...'，不能写 "0xABC..."
+    ));
+    // 将最后 20 个字节的哈希值转换为地址
+    return address(uint160(uint(addrHash)));
+}
 }
