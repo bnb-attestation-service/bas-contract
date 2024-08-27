@@ -27,12 +27,13 @@ contract BucketRegistry is Initializable,AccessControl {
     address public bucketFactory;
     function initialize() public initializer {
         // bucketManageInterfaceId = type(IBucketManager).interfaceId;
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         bucketFactory = address(0);
     }
 
     function setBucketFactory(address newBucketFactory) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        revokeRole(OPERATOR_ROLE, bucketFactory);
-        grantRole(OPERATOR_ROLE, newBucketFactory);
+        _revokeRole(OPERATOR_ROLE, bucketFactory);
+        _grantRole(OPERATOR_ROLE, newBucketFactory);
         bucketFactory = newBucketFactory;
     }
 
@@ -43,10 +44,12 @@ contract BucketRegistry is Initializable,AccessControl {
     function existBucketName(string memory bucketName) external view returns (bool){
         return bucketsNames[bucketName];
     }
+
     function setBucketName(string memory bucketName) external isBucketManager{
         require (!bucketsNames[bucketName],"The bucket name has registered");
         bucketsNames[bucketName] = true;
     }
+
     function updateController(address preController, address  newController) external isBucketManager{
         if (controllers[preController].contains(msg.sender)) {
             controllers[preController].remove(msg.sender);
@@ -54,8 +57,35 @@ contract BucketRegistry is Initializable,AccessControl {
         controllers[newController].add(msg.sender);
     }   
 
-    function getBucketManagers() public view returns (address[] memory) {
-        // registedBuckeManageContracts.at(set, index);
+    function getBucketManagers(address controller) public view returns (address[] memory) {
+        return controllers[controller].values();
+    }
 
+    function getBucketManagerAt(address controller, uint256 index)  public view returns (address) {
+        return controllers[controller].at(index);
+    }
+
+    function controlled(address controller, address manager) public view returns (bool) {
+        return controllers[controller].contains(manager);
+    }
+
+    function controlledManagerAmount(address controller) public view returns (uint256) {
+        return controllers[controller].length();
+    }
+
+    function registeredManagerAmount() public view returns (uint256) {
+        return registedBuckeManageContracts.length();
+    }
+
+    function getRegisteredManagers() public view returns (address[] memory) {
+        return registedBuckeManageContracts.values();
+    }
+
+    function getRegisteredManagerAt(uint256 index) public view returns (address) {
+        return registedBuckeManageContracts.at(index);
+    }
+
+    function registered(address manager)public view returns (bool) {
+        return registedBuckeManageContracts.contains(manager);
     }
 }

@@ -13,12 +13,13 @@ import {
    Effect,
    PrincipalType,
 } from '@bnb-chain/greenfield-cosmos-types/greenfield/permission/common';
+import { ZERO_BYTES32 } from "../utils";
 
-async function deployRegistry()  {
+async function deployRegistry() {
     const [signer] = await ethers.getSigners();
-    console.log('Deploy contract with account:',signer.address);
+    console.log('Deploy bucket registry contract with account:',signer.address);
 
-    const Registry =  await ethers.getContractFactory("GreenfiBucketRegistry",signer);
+    const Registry =  await ethers.getContractFactory("BucketRegistry",signer);
     const registry = await upgrades.deployProxy(Registry,[]);
     await registry.waitForDeployment();
     const addr = await registry.getAddress();
@@ -33,7 +34,7 @@ async function deployFactory(bucketRegistry: string) {
     const PERMISSION_HUB = "0x25E1eeDb5CaBf288210B132321FBB2d90b4174ad";
     const SP_ADDRESS_TESTNET = "0x5FFf5A6c94b182fB965B40C7B9F30199b969eD2f";
     const GREENFIELD_EXECUTOR = "0x3E3180883308e8B4946C9a485F8d91F8b15dC48e";
-    const SCHEMA_REGISTRY = ""
+    const SCHEMA_REGISTRY = "0x08C8b8417313fF130526862f90cd822B55002D72"
 
     const [signer] = await ethers.getSigners();
     const Factory =  await ethers.getContractFactory("BucketFactory",signer);
@@ -46,7 +47,7 @@ async function deployFactory(bucketRegistry: string) {
         BUCKET_HUB,
         PERMISSION_HUB,
         SP_ADDRESS_TESTNET,
-        GREENFIELD_EXECUTOR
+        GREENFIELD_EXECUTOR,
     ])
     await factory.waitForDeployment()
     const addr = await factory.getAddress();
@@ -58,6 +59,7 @@ async function setFactoryAddressForRegistry(_registry: string,_factory:string) {
     const [signer] = await ethers.getSigners();
     const registry = BucketRegistry__factory.connect(_registry,signer)
     const resp = await registry.setBucketFactory(_factory);
+    await resp.wait()
     console.log(`set bucket factory address to ${_factory} in tx ${resp.hash}`);
 }
 
@@ -65,9 +67,19 @@ async function deployBucketManager(_factory: string) {
     const [signer] = await ethers.getSigners();
     
     const factory = BucketFactory__factory.connect(_factory,signer)
+
+    const CROSS_CHAIN = await factory.cross_chain();
+    const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN));
+    const [relayFee, ackRelayFee] = await crossChain.getRelayFees();
+
     const salt = ethers.hashMessage("test-salt")
-    const resp = await factory.deploy(salt)
+    const transferOutAmt = ethers.parseEther('0.01');
+
+    const value = transferOutAmt + relayFee+ ackRelayFee;
+
+    const resp = await factory.deploy(transferOutAmt,salt,{value});
     console.log(`create bucket manager contract in tx ${resp.hash}`);
+    await resp.wait();
 }
 
 async function createBucket(_bucketManager: string) {
@@ -83,8 +95,8 @@ async function createBucket(_bucketManager: string) {
     const [relayFee, ackRelayFee] = await crossChain.getRelayFees();
 
 
-
-    const userBucketName = "bas-0xacc308075dabd756f3806f0f2a0d919d12b13597ba4791de96283aa646c2c5b5"
+    // const userBucketName = await bucketManager.getName("",ZERO_BYTES32);
+    const userBucketName = "bas-"+signer.address;
 
     const userDataSetBucketFlowRateLimit = ExecutorMsg.getSetBucketFlowRateLimitParams({
         bucketName:userBucketName,
@@ -96,27 +108,25 @@ async function createBucket(_bucketManager: string) {
 
     
     const userExecutorData = userDataSetBucketFlowRateLimit[1];
-    const userTransferOutAmt = ethers.parseEther('0.01');
-    const userValue = userTransferOutAmt+ relayFee *3n+ ackRelayFee*2n;
+    const userValue = relayFee *2n+ ackRelayFee;
 
-    console.log('- transfer out to demo contract on greenfield', userTransferOutAmt);
     console.log('- create user bucket', userBucketName);
     console.log('send crosschain tx!');
-    const resp = await (await bucketManager.createUserBucket(userTransferOutAmt, userExecutorData, {value: userValue })).wait();
+    const resp = await (await bucketManager.createUserBucket(userExecutorData, {value: userValue })).wait();
     console.log(`https://testnet.bscscan.com/tx/${resp?.hash}`);
 
     
-     console.log('waiting for user bucket created..., about 1 minute');
-     await sleep(60); // waiting bucket created
+    console.log('waiting for user bucket created..., about 1 minute');
+    await sleep(60); // waiting bucket created
  
-     const userBucketInfo = await client.bucket.getBucketMeta({ bucketName:userBucketName });
-     const userBucketId = userBucketInfo.body!.GfSpGetBucketMetaResponse.Bucket.BucketInfo.Id;
+    const userBucketInfo = await client.bucket.getBucketMeta({ bucketName:userBucketName });
+    const userBucketId = userBucketInfo.body!.GfSpGetBucketMetaResponse.Bucket.BucketInfo.Id;
 
-     console.log('usre bucket created, bucket id', userBucketId);
-     const userHexBucketId = `0x000000000000000000000000000000000000000000000000000000000000${BigInt(
-        userBucketId
-     ).toString(16)}`;
-     console.log(`https://testnet.greenfieldscan.com/bucket/${userHexBucketId}`);
+    console.log('usre bucket created, bucket id', userBucketId);
+    const userHexBucketId = `0x000000000000000000000000000000000000000000000000000000000000${BigInt(
+       userBucketId
+    ).toString(16)}`;
+    console.log(`https://testnet.greenfieldscan.com/bucket/${userHexBucketId}`);
 
     const schemaId = "0xacc308075dabd756f3806f0f2a0d919d12b13597ba4791de96283aa646c2c5b5";
     const name = "test"
@@ -131,12 +141,11 @@ async function createBucket(_bucketManager: string) {
     });
 
     const schemaExecutorData = schemaDataSetBucketFlowRateLimit[1];
-    const schemaTransferOutAmt = ethers.parseEther('0');
-    const schemaValue = schemaTransferOutAmt+ relayFee *2n+ ackRelayFee*1n;
+    const schemaValue = relayFee *2n+ ackRelayFee;
 
     console.log('- create schema bucket', userBucketName);
     console.log('send crosschain tx!');
-    const resp1 = await (await bucketManager._createSchemaBucket(name,schemaId,schemaTransferOutAmt, schemaExecutorData, {value: schemaValue })).wait();
+    const resp1 = await (await bucketManager._createSchemaBucket(name,schemaId, schemaExecutorData, {value: schemaValue })).wait();
     console.log(`https://testnet.bscscan.com/tx/${resp1?.hash}`);
 
     console.log('waiting for user bucket created..., about 1 minute');
@@ -197,3 +206,39 @@ async function createPolicy(_bucketManager: string, bucketName: string, eoa : st
 async function sleep(seconds: number) {
     return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
 }
+
+async function getControlledManagers(_registry: string) {
+    const [signer] = await ethers.getSigners();
+    const registry = BucketRegistry__factory.connect(_registry,signer)
+
+    const managers = await registry.getBucketManagers(signer.address)
+    console.log(`Bucket Managers of ${signer.address} are ${managers}`)
+
+    const registeredManagers = await registry.getRegisteredManagers()
+    console.log(`Bucket Managers registered are ${managers}`)
+
+    
+}
+
+
+async function main() {
+    const registry = await deployRegistry()
+    // const registry = "0x60bF19cDAD4934CC9ef78165443633708Adc5EF2"
+    const factory = await deployFactory(registry)
+    // const factory = "0x61aA6596E36c3a4D89F30F2f0BfabD18C1721BD9"
+    await setFactoryAddressForRegistry(registry,factory)
+    await deployBucketManager(factory)
+    await getControlledManagers(registry)
+    // const manager = "0xbe282d647cb44e1ebd817fd6e68056b59918d301"
+    // await createBucket(manager)
+    // const bucketName = ""
+    // const eoa = ""
+    // await createPolicy(manager,bucketName,eoa)
+
+  }
+  // We recommend this pattern to be able to use async/await everywhere
+  // and properly handle errors.
+  main().catch((error) => {
+      console.error(error);
+      process.exitCode = 1;
+    });

@@ -69,7 +69,10 @@ typechain-types
 # Hardhat files
 cache
 artifacts
-
+contracts/tests/
 
 .DS_Store
  contracts/.DS_Store
+
+./test/Lock.ts
+.openzeppelin/

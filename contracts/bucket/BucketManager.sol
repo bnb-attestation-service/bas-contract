@@ -7,6 +7,10 @@ import "@bnb-chain/greenfield-contracts/contracts/interface/ICrossChain.sol";
 import "@bnb-chain/greenfield-contracts/contracts/interface/IPermissionHub.sol";
 import "@bnb-chain/greenfield-contracts/contracts/interface/IGreenfieldExecutor.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Strings.sol"; 
+import { Semver } from "../Semver.sol";
+// 引入 OpenZeppelin 的 Strings 库
+
 
 import {SchemaRecord} from "../ISchemaRegistry.sol";
 
@@ -21,7 +25,7 @@ interface IBucketRegistry{
     function updateController(address preController, address newController) external;
 }
 
-contract BucketManager is Ownable{
+contract BucketManager is Semver, Ownable{
     address public  bucketRegistry;
     address public  schemaRegistry;
     address public  tokenHub;
@@ -31,6 +35,7 @@ contract BucketManager is Ownable{
     address public  sp_address_testnet;
     address public  greenfield_executor;
 
+
     event CreateSchemaBucket(address indexed creator, bytes32 indexed schemaId, string name);
     event CreateSchemaPolicy(bytes32 indexed schemaId, string name, bytes _msgData);
 
@@ -39,18 +44,18 @@ contract BucketManager is Ownable{
     
 	//schemaID => name
 	mapping (bytes32 => mapping(string => bool)) public schemaBuckets;
-    bytes32[] public schemaIds;
+    string[] public bucketNames;
     mapping (bytes32 => string[]) public nameOfSchemaId;
     bool public basBucket;
 
 
-    function _getName(string memory name, bytes32 schemaId) internal view returns(string memory) {
-        if (schemaId == bytes32(0)) {
-            return string(abi.encodePacked("bas-", address(this)));
+    function _getName(string memory name, bytes32 schemaId) public view returns (string memory){
+         if (schemaId == bytes32(0)) {
+            return string(abi.encodePacked("bas-", Strings.toHexString(msg.sender)));
         }
-        return string(abi.encodePacked("bas-", name,schemaId));
+        return string(abi.encodePacked("bas-", name,"-",Strings.toHexString(uint256(schemaId))));
     }
-    constructor(
+    constructor (
         address _controller,
         address _bucketRegistry,
         address _schemaRegistry,
@@ -59,8 +64,13 @@ contract BucketManager is Ownable{
         address _bucket_hub,
         address _permission_hub,
         address _sp_address_testnet,
-        address _greenfield_executor
-    ) {
+        address _greenfield_executor,
+
+        uint256 major, 
+        uint256 minor, 
+        uint256 patch
+        
+    ) Semver(major, minor, patch) {
         bucketRegistry = _bucketRegistry;
         schemaRegistry = _schemaRegistry;
         tokenHub = _tokenHub;
@@ -73,10 +83,9 @@ contract BucketManager is Ownable{
         _transferOwnership(_controller);
     }
 
-    function _createSchemaBucket(
+    function createSchemaBucket(
 		string memory name,
 		bytes32 schemaId, 
-		uint256 transferOutAmount,
 		bytes memory _executorData
 	) external payable onlyOwner returns (string memory) {
          // Verify if the schema exists
@@ -89,9 +98,9 @@ contract BucketManager is Ownable{
 		require(schema.uid != bytes32(0),"Invalid schemaId");
         
         // Create the bucket
-		_createBucket(bucketName,transferOutAmount,_executorData);
+		_createBucket(bucketName,_executorData);
         schemaBuckets[schemaId][name] = true;
-        schemaIds.push(schemaId);
+        bucketNames.push(bucketName);
         nameOfSchemaId[schemaId].push(name);
         IBucketRegistry(bucketRegistry).setBucketName(bucketName);
 		emit CreateSchemaBucket(msg.sender, schemaId,name);
@@ -99,15 +108,15 @@ contract BucketManager is Ownable{
 	}
 	
 	function createUserBucket(
-		uint256 transferOutAmount,
 		bytes memory _executorData
 	) external payable onlyOwner returns (string memory){
 	    require(!basBucket,"The bas bucket for current contract has existed");
 	    string memory bucketName = _getName("",bytes32(0));
         require(!IBucketRegistry(bucketRegistry).existBucketName(bucketName), "The name of bucket for schema has existed");
 
-	    _createBucket(bucketName,transferOutAmount,_executorData);
+	    _createBucket(bucketName,_executorData);
 	    basBucket = true;
+        bucketNames.push(bucketName);
         IBucketRegistry(bucketRegistry).setBucketName(bucketName);
 	    emit CreateUserBucket(msg.sender,bucketName);
         return bucketName;
@@ -116,26 +125,15 @@ contract BucketManager is Ownable{
     
     function _createBucket(
         string memory bucketName,
-        uint256 transferOutAmount,
         bytes memory _executorData
     ) internal {
         (uint256 relayFee, uint256 ackRelayFee) = ICrossChain(cross_chain).getRelayFees();
 
-        if (_executorData.length == 0 && transferOutAmount > 0) {
-            require(msg.value == transferOutAmount + relayFee * 2 + ackRelayFee * 2, "msg.value not enough");
-        } else if (_executorData.length == 0 && transferOutAmount == 0)  {
-            require(msg.value == transferOutAmount + relayFee + ackRelayFee, "msg.value not enough");
-        } else if (_executorData.length == 1 && transferOutAmount == 0)  {
-            require(msg.value == transferOutAmount + relayFee * 2 + ackRelayFee, "msg.value not enough");
+        if (_executorData.length == 0)  {
+            require(msg.value == relayFee + ackRelayFee, "msg.value not enough");
         } else {
-            require(msg.value == transferOutAmount + relayFee * 3 + ackRelayFee * 2, "msg.value not enough");
-        }
-
-        // 1. transferOut to address(this) on greenfield
-        if (transferOutAmount > 0) {
-            _topUpBNB(transferOutAmount);
-        }
-
+            require(msg.value == relayFee * 2 + ackRelayFee, "msg.value not enough");
+        } 
 
        if (_executorData.length > 0) {
          // 2. set bucket flow rate limit
@@ -204,6 +202,10 @@ contract BucketManager is Ownable{
         (uint256 relayFee, uint256 ackRelayFee) = ICrossChain(cross_chain).getRelayFees();
         bool result = IGreenfieldExecutor(greenfield_executor).execute{ value: relayFee }(_msgTypes, _msgBytes);
         require(result,"fail to execute");
+    }
+
+    function getName(string memory name, bytes32 schemaId) public view returns (string memory){
+        return _getName(name, schemaId);
     }
     
 }

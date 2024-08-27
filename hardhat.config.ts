@@ -86,6 +86,9 @@ const config: HardhatUserConfig = {
         }
       }
     ]
+  },
+  sourcify: {
+    enabled: true
   }
 };
 
