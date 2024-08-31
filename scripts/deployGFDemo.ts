@@ -11,10 +11,6 @@
 } from '@bnb-chain/greenfield-cosmos-types/greenfield/permission/common';
 
  async function deploy() {
-    const GRPC_URL = 'https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org';
-    const GREEN_CHAIN_ID = 'greenfield_5600-1';
-    const client = Client.create(GRPC_URL, GREEN_CHAIN_ID);
-
     const [signer] = await ethers.getSigners();
     console.log('Deploy contract with account:',signer.address);
 
@@ -24,6 +20,38 @@
     const addr = await demo.getAddress();
 
     console.log('greenfield demo contract address:', addr)
+    return addr
+ }
+
+//  async function execute(addr:string) {
+//     const [signer] = await ethers.getSigners();
+//     const demo = GreenfieldDemo__factory.connect(addr,signer);
+
+//     const CROSS_CHAIN = await demo.CROSS_CHAIN();
+//     const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN));
+//     const [relayFee, ] = await crossChain.getRelayFees();
+
+
+//     const bucketName = 'test-' + addr.substring(2, 6).toLowerCase();
+//     const dataSetBucketFlowRateLimit = ExecutorMsg.getSetBucketFlowRateLimitParams({
+//         bucketName,
+//         bucketOwner: addr,
+//         operator: addr,
+//         paymentAddress: signer.address,
+//         flowRateLimit: '10000000000000000',
+//     });
+//     const executorData = dataSetBucketFlowRateLimit[1];
+//     const resp = await demo.executeGreenfield(executorData,{value:relayFee});
+//     console.log(`execute gf command on ${bucketName} in https://testnet.bscscan.com/tx/${resp?.hash}`);
+//  }
+
+ async function createBucket(addr:string) {
+    const [signer] = await ethers.getSigners();
+    const GRPC_URL = 'https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org';
+    const GREEN_CHAIN_ID = 'greenfield_5600-1';
+    const client = Client.create(GRPC_URL, GREEN_CHAIN_ID);
+
+    const demo = GreenfieldDemo__factory.connect(addr,signer);
 
     const CROSS_CHAIN = await demo.CROSS_CHAIN();
     const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN));
@@ -38,17 +66,20 @@
         bucketName,
         bucketOwner: addr,
         operator: addr,
-        paymentAddress: addr,
+        paymentAddress: signer.address,
         flowRateLimit: '10000000000000000',
     });
     const executorData = dataSetBucketFlowRateLimit[1];
-    const transferOutAmt = ethers.parseEther('0.1');
-    const value = transferOutAmt+ relayFee *3n+ ackRelayFee*2n;
+    const transferOutAmt = ethers.parseEther('0.001');
+    const gasPrice =  10_000_000_000n; // 10 GWei
+    const callbackGasLimit = 200_000n 
+    const value = transferOutAmt + 3n * relayFee + 2n * ackRelayFee + callbackGasLimit * gasPrice;
+    const failureHandleStrategy = 2
 
     console.log('- transfer out to demo contract on greenfield', transferOutAmt);
     console.log('- create bucket', bucketName);
     console.log('send crosschain tx!');
-    const resp = await (await demo.createBucket(bucketName, transferOutAmt, executorData, { value })).wait();
+    const resp = await (await demo.createBucket(bucketName, transferOutAmt, executorData,callbackGasLimit, failureHandleStrategy ,{ value:value })).wait();
     console.log(`https://testnet.bscscan.com/tx/${resp?.hash}`);
 
      // 3. get bucket id by name
@@ -63,39 +94,13 @@
          bucketId
      ).toString(16)}`;
      console.log(`https://testnet.greenfieldscan.com/bucket/${hexBucketId}`);
-
-     const uploaderEoaAccount = "0xccC793c4D92f7c425Ef5C2b418b9186ad180708d"; // TODO set your eoa account to upload files
-     console.log('try to set uploader(eoa account) is', uploaderEoaAccount);
-
-     const policyDataToAllowUserOperateBucket = Policy.
-     encode({
-        id: '0',
-        resourceId: bucketId, // bucket id
-        resourceType: ResourceType.RESOURCE_TYPE_BUCKET,
-        statements: [
-            {
-                effect: Effect.EFFECT_ALLOW,
-                actions: [ActionType.ACTION_CREATE_OBJECT], // allow upload file to the bucket
-                resources: [],
-            },
-        ],
-        principal: {
-            type: PrincipalType.PRINCIPAL_TYPE_GNFD_ACCOUNT,
-            value: uploaderEoaAccount,
-        },
-    }).finish();
-
-    await (await demo.createPolicy(policyDataToAllowUserOperateBucket, { value: relayFee+ackRelayFee})).wait();
-    console.log(
-        `policy set success, ${uploaderEoaAccount} could upload file to the bucket ${bucketName} (id: ${bucketId}) now on Greenfield`
-    );
  }
 
  async function allocatePolicy() {
     const [signer] = await ethers.getSigners();
     const readerEoaAccount = "0xccC793c4D92f7c425Ef5C2b418b9186ad180708d";
 
-    const bucketName = "test-c6b1";
+    const bucketName = "test-47de";
     const objectName = "story3.txt";
     const GRPC_URL = 'https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org';
     const GREEN_CHAIN_ID = 'greenfield_5600-1';
@@ -103,21 +108,25 @@
      
     const bucketInfo = await client.bucket.getBucketMeta({ bucketName });
     const bucketId = bucketInfo.body!.GfSpGetBucketMetaResponse.Bucket.BucketInfo.Id;
-    const headObject = await client.object.headObject(bucketName,objectName);
-    const objectId = headObject.objectInfo?.id??"";
+    // const headObject = await client.object.headObject(bucketName,objectName);
+    // const objectId = headObject.objectInfo?.id??"";
 
-    const demoAddr = "0xc6b1388f1173Ae2eEFD3dBe33349D8362A7d7909"
+    const demoAddr = "0x47DE74C9253C6D717bA93191333F91e9b1f4e1Ce"
     const demo = GreenfieldDemo__factory.connect(demoAddr,signer);
 
     const CROSS_CHAIN = await demo.CROSS_CHAIN();
     const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN));
     const [relayFee, ackRelayFee] = await crossChain.getRelayFees();
+    const gasPrice =  10_000_000_000n; // 10 GWei
+    const callbackGasLimit = 200_000n; 
+    const failureHandleStrategy = 2;
+
 
     const policyDataToAllowUserOperateBucket = Policy.
      encode({
         id: '0',
-        resourceId: objectId, 
-        resourceType: ResourceType.RESOURCE_TYPE_OBJECT,
+        resourceId: bucketId, 
+        resourceType: ResourceType.RESOURCE_TYPE_BUCKET,
         statements: [
             {
                 effect: Effect.EFFECT_ALLOW,
@@ -140,7 +149,7 @@
         },
     }).finish();
 
-    await (await demo.createPolicy(policyDataToAllowUserOperateBucket, { value: relayFee+ackRelayFee})).wait();
+    await demo.createPolicy(policyDataToAllowUserOperateBucket,callbackGasLimit, failureHandleStrategy, { value: 3n * relayFee + 2n * ackRelayFee + callbackGasLimit * gasPrice});
     // console.log(
     //     `policy set success, ${readerEoaAccount} could read object ${objectName} (id: ${objectId}) now on Greenfield`
     // );
@@ -156,8 +165,12 @@
 
 
 async function main() {
-  await deploy();
-    // await allocatePolicy();
+//   const addr = await deploy();
+//   const addr = "0x801B3927E0c041B16117b2b119e116cFB6a0f2c3"
+//   await execute(addr);
+//   await sleep(60)
+//   await createBucket(addr)
+await allocatePolicy()
 }
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.

@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {BucketManager} from "./BucketManager.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
 
 
 
@@ -12,6 +14,11 @@ interface IBucketRegistry {
 }
 contract BucketFactory is Initializable{
     event CreateBucketManager(address indexed creator, address bucketManger);
+
+    modifier onlyOwner() {
+        require(msg.sender == admin,  "Only Owner can call this function");
+        _;
+    }
 
     address public  bucketRegistry;
     address public  schemaRegistry;
@@ -22,22 +29,15 @@ contract BucketFactory is Initializable{
     address public  sp_address_testnet;
     address public  greenfield_executor;
 
-    uint256 constant _major = 1;
+    uint256 public callbackGasLimit;
+    uint8   public failureHandlerStrategy;
 
-    // Contract's minor version number.
-    uint256 constant _minor = 0;
-
-    // Contract's patch version number.
-    uint256 constant _path = 0;
-
-    /// @notice Returns the full semver contract version.
-    /// @return Semver contract version as a string.
-    function version() external pure returns (string memory) {
-        return
-            string(
-                abi.encodePacked(Strings.toString(_major), ".", Strings.toString(_minor), ".", Strings.toString(_path))
-            );
-    }
+    string public version;
+    address public admin;
+    
+    // constructor () Ownable(){
+    //     _disableInitializers();
+    // }
 
 
     function initialize(
@@ -48,7 +48,9 @@ contract BucketFactory is Initializable{
         address _bucket_hub,
         address _permission_hub,
         address _sp_address_testnet,
-        address _greenfield_executor
+        address _greenfield_executor,
+        uint256 _callbackGasLimit,
+        uint8   _failureHandlerStrategy
     ) public initializer{
         bucketRegistry = _bucketRegistry;
         schemaRegistry = _schemaRegistry;
@@ -58,6 +60,10 @@ contract BucketFactory is Initializable{
         permission_hub = _permission_hub;
         sp_address_testnet = _sp_address_testnet;
         greenfield_executor = _greenfield_executor;
+
+        callbackGasLimit = _callbackGasLimit;
+        failureHandlerStrategy = _failureHandlerStrategy;
+        admin = msg.sender;
     }
 
     function deploy(
@@ -77,10 +83,9 @@ contract BucketFactory is Initializable{
             permission_hub,
             sp_address_testnet,
             greenfield_executor,
-
-            _major,
-            _minor ,
-            _path
+            callbackGasLimit,
+            failureHandlerStrategy,
+            version
         );
 
         IBucketRegistry(bucketRegistry).addBucketManager( address(bucketManager));
@@ -89,16 +94,9 @@ contract BucketFactory is Initializable{
         return address(bucketManager);
     }
 
-    function deployWithInit(
-        uint256 transferOutAmount,
-        bytes calldata _executorData,
-        bytes calldata _createPolicyData,
-        bytes32 _salt
-    ) public payable
-      returns(address)
-    {   
-        BucketManager bucketManager =  new BucketManager{salt:_salt}
-        (
+    function _getBytecodeHash() internal view returns (bytes32) {
+        bytes memory bytecode = type(BucketManager).creationCode;
+        return keccak256(abi.encodePacked(bytecode, abi.encode(
             msg.sender,
             bucketRegistry,
             schemaRegistry,
@@ -108,32 +106,9 @@ contract BucketFactory is Initializable{
             permission_hub,
             sp_address_testnet,
             greenfield_executor,
-
-            _major,
-            _minor ,
-            _path
-        );
-
-        IBucketRegistry(bucketRegistry).addBucketManager( address(bucketManager));
-        emit CreateBucketManager(msg.sender, address(bucketManager));
-        bucketManager.initial{value:msg.value}(_executorData,_createPolicyData,transferOutAmount);
-        return address(bucketManager);
-    }
-
-    function _getBytecodeHash() internal view returns (bytes32) {
-        bytes memory bytecode = type(BucketManager).creationCode;
-        return keccak256(abi.encodePacked(bytecode, abi.encode(msg.sender,
-            bucketRegistry,
-            schemaRegistry,
-            tokenHub,
-            cross_chain,
-            bucket_hub,
-            permission_hub,
-            sp_address_testnet,
-            greenfield_executor,
-            _major,
-            _minor ,
-            _path)));
+            callbackGasLimit,
+            failureHandlerStrategy,
+            version)));
     }
 
     function getManagerAddress(bytes32 _salt) public view returns (address) {
@@ -144,6 +119,14 @@ contract BucketFactory is Initializable{
         _getBytecodeHash() // 这里可以提前进行 keccak256 后写到这里，写法是 bytes32(0xABC...) 或 hex'ABC...'，不能写 "0xABC..."
     ));
     // 将最后 20 个字节的哈希值转换为地址
-    return address(uint160(uint(addrHash)));
-}
+    return address(uint160(uint(addrHash)));    
+    }
+
+    function setCallbackGasLimit(uint256 _callbackGasLimit) external onlyOwner() {
+        callbackGasLimit = _callbackGasLimit;
+    }
+
+    function setFailureHandleStrategy(uint8 _failureHandleStrategy) external onlyOwner() {
+        failureHandlerStrategy = _failureHandleStrategy;
+    }
 }

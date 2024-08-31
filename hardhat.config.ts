@@ -24,8 +24,9 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 1000000
+        runs: 1000000,
       },
+      viaIR: true,
       metadata: {
         bytecodeHash: 'none'
       }
