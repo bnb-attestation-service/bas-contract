@@ -64,7 +64,11 @@ coverage
 coverage.json
 typechain
 typechain-types
-/contracts/BAS.sol
+
+scripts/bucket/mamager_deploy.ts
+
+contracts/BAS.sol
+contracts/GreenfieldDemo.sol
 
 # Hardhat files
 cache
