@@ -7,8 +7,6 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 
-
-
 interface IBucketRegistry {
    function addBucketManager(address bucketManager) external;
 }
@@ -72,6 +70,9 @@ contract BucketFactory is Initializable{
     ) public payable
       returns(address)
     {   
+        address managerAddr = getManagerAddress(_salt);
+        IBucketRegistry(bucketRegistry).addBucketManager(managerAddr);
+        
         BucketManager bucketManager =  new BucketManager{salt:_salt}
         (
             msg.sender,
@@ -87,8 +88,6 @@ contract BucketFactory is Initializable{
             failureHandlerStrategy,
             version
         );
-
-        IBucketRegistry(bucketRegistry).addBucketManager( address(bucketManager));
         emit CreateBucketManager(msg.sender, address(bucketManager));
         bucketManager.topUpBNB{value:msg.value}(transferOutAmount);
         return address(bucketManager);

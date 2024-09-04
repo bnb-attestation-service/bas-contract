@@ -85,11 +85,12 @@ contract BucketManager is Ownable {
         permission_hub = _permission_hub;
         sp_address_testnet = _sp_address_testnet;
         greenfield_executor = _greenfield_executor;
-        _transferOwnership(_controller);
         version = _version;
 
         callbackGasLimit = _callbackGasLimit;
         failureHandleStrategy = PackageQueue.FailureHandleStrategy(_failureHandlerStrategy);
+        IBucketRegistry(bucketRegistry).updateController(owner(),_controller);
+        _transferOwnership(_controller);
     }
     
 
@@ -408,4 +409,15 @@ contract BucketManager is Ownable {
         failureHandleStrategy = PackageQueue.FailureHandleStrategy(_failureHandleStrategy);
     }
 
+    function getUserBucketStatus() public view returns(Status) {
+        return basBucket;
+    }
+
+    function getSchemaBucketStatus(bytes32 schemaId, string memory name)public view returns(Status) {
+        return schemaBuckets[schemaId][name];
+    }
+
+    function getPolicyStatus(bytes32 _msgDataHash)public view returns(Status) {
+        return policies[_msgDataHash];
+    }
 }
