@@ -64,81 +64,93 @@ struct UInt64Value {
     uint64 value;
 }
 
-function encodePrinciple(Principal memory principal) pure returns (bytes memory) {
-    bytes memory result;
-    if (principal.principal_type != 0) {
-        result = abi.encodePacked(ProtobufLib.encode_uint32(8),ProtobufLib.encode_int32(principal.principal_type));
+
+
+contract Common {
+    constructor(){
+
     }
 
-    if (!Strings.equal("",principal.value))  {
-        result = abi.encodePacked(result,ProtobufLib.encode_uint32(18),result,ProtobufLib.encode_string(principal.value));
-    }
-    return result;
-}
+    function encodePrinciple(Principal memory principal)public pure returns (bytes memory) {
+        bytes memory result;
+        if (principal.principal_type != 0) {
+            result = abi.encodePacked(ProtobufLib.encode_uint32(8),ProtobufLib.encode_int32(principal.principal_type));
+        }
 
-function encodeStatement(Statement memory statement) pure returns (bytes memory) {
+        if (!Strings.equal("",principal.value))  {
+            result = abi.encodePacked(result,ProtobufLib.encode_uint32(18),ProtobufLib.encode_string(principal.value));
+        }
+        return result;
+        }   
+
+    function encodeStatement(Statement memory statement)public pure returns (bytes memory) {
+        bytes memory result;
+        if (statement.effect != 0) {
+            result = abi.encodePacked(ProtobufLib.encode_uint32(8),ProtobufLib.encode_int32(statement.effect));
+        }
+
+        //actions
+        result = abi.encodePacked(result,ProtobufLib.encode_uint32(18));
+        
+        bytes memory actionsBytes;
+        for (uint i = 0;i< statement.actions.length;i++) {
+           actionsBytes = abi.encodePacked(actionsBytes,ProtobufLib.encode_int32(statement.actions[i]));
+        }
+        if (actionsBytes.length >0) {
+            result = abi.encodePacked(result,ProtobufLib.encode_uint32(uint32(actionsBytes.length)),actionsBytes);
+        }
+
+        //resources 
+        for (uint i = 0;i< statement.resources.length;i++) {
+            result = abi.encodePacked(result,ProtobufLib.encode_uint32(26),ProtobufLib.encode_string(statement.resources[i]));
+        }
+
+        //expiration 
+        // bytes memory expirationTimeBytes;
+        if (statement.expiration_time._seconds != 0) {
+            bytes memory secondBytes = abi.encodePacked(ProtobufLib.encode_uint32(8),ProtobufLib.encode_int64(statement.expiration_time._seconds));
+            result = abi.encodePacked(result,ProtobufLib.encode_uint32(34),ProtobufLib.encode_uint32(uint32(secondBytes.length)),secondBytes);
+        }
+
+        // bytes memory limitSizeBytes;
+        if (statement.limit_size.value != 0) {
+            bytes memory valueBytes = abi.encodePacked(ProtobufLib.encode_uint32(8),ProtobufLib.encode_uint64(statement.limit_size.value));
+            result = abi.encodePacked(result,ProtobufLib.encode_uint32(42),ProtobufLib.encode_uint32(uint32(valueBytes.length)),valueBytes);
+        }
+        return result; 
+    }
+
+    function encodePolicy(Policy memory policy) public pure returns (bytes memory) {
+        bytes memory result;
+        if (!Strings.equal("",policy.id)) {
+            result = abi.encodePacked(ProtobufLib.encode_uint32(10),ProtobufLib.encode_string(policy.id));
+        }
+
+        if (policy.principal.principal_type !=0) {
+            bytes memory principalBytes = encodePrinciple(policy.principal);
+            result = abi.encodePacked(result,ProtobufLib.encode_uint32(18),ProtobufLib.encode_uint32(uint32(principalBytes.length)),principalBytes);
+        }
+
+        if (policy.resource_type != 0) {
+            result = abi.encodePacked(result,ProtobufLib.encode_uint32(24),ProtobufLib.encode_int32(policy.resource_type));
+        }
+
+         if (!Strings.equal("",policy.resource_id)){
+            result = abi.encodePacked(result,ProtobufLib.encode_uint32(34),ProtobufLib.encode_string(policy.resource_id));
+        }
+
+
+
+        for (uint i = 0;i<policy.statements.length;i++) {
+            bytes memory statementsBytes = encodeStatement(policy.statements[i]);
+            result = abi.encodePacked(result,ProtobufLib.encode_uint32(42),ProtobufLib.encode_uint32(uint32(statementsBytes.length)),statementsBytes);
+        }
+
+        if (policy.expiration_time._seconds != 0) {
+            bytes memory secondBytes = abi.encodePacked(ProtobufLib.encode_uint32(8),ProtobufLib.encode_int64(policy.expiration_time._seconds));
+            result = abi.encodePacked(result,ProtobufLib.encode_uint32(50),ProtobufLib.encode_uint32(uint32(secondBytes.length)),secondBytes);
+        }
     
-    
-    bytes memory result;
-    if (statement.effect != 0) {
-        result = abi.encode(ProtobufLib.encode_uint32(8),ProtobufLib.encode_int32(statement.effect));
+        return result;
     }
-
-    bytes memory actionsBytes = ProtobufLib.encode_uint32(18);
-    for (uint i = 0;i< statement.actions.length;i++) {
-        actionsBytes = abi.encodePacked(actionsBytes,ProtobufLib.encode_int32(statement.actions[i]));
-    }
-
-    bytes memory resourcesBytes;
-    for (uint i = 0;i< statement.resources.length;i++) {
-        resourcesBytes = abi.encodePacked(resourcesBytes,ProtobufLib.encode_uint32(26),ProtobufLib.encode_string(statement.resources[i]));
-    }
-
-    bytes memory expirationTimeBytes;
-    if (statement.expiration_time._seconds != 0) {
-        expirationTimeBytes = abi.encodePacked(expirationTimeBytes,ProtobufLib.encode_uint32(8),ProtobufLib.encode_int64(statement.expiration_time._seconds));
-    }
-
-    if (statement.expiration_time.nanos != 0) {
-        expirationTimeBytes = abi.encodePacked(expirationTimeBytes,ProtobufLib.encode_uint32(16),ProtobufLib.encode_int32(statement.expiration_time.nanos));
-    }
-
-    bytes memory limitSizeBytes;
-    if (statement.limit_size.value != 0) {
-        limitSizeBytes = abi.encodePacked(ProtobufLib.encode_uint32(8),ProtobufLib.encode_uint64(statement.limit_size.value));
-    }
-
-    return abi.encodePacked(result,actionsBytes,resourcesBytes,expirationTimeBytes,limitSizeBytes); 
-}
-
-function encodePolicy(Policy memory policy) pure returns (bytes memory) {
-    bytes memory result;
-    if (!Strings.equal("",policy.id)) {
-        result = abi.encodePacked(ProtobufLib.encode_uint32(10),ProtobufLib.encode_string(policy.id));
-    }
-
-    if (policy.principal.principal_type !=0) {
-        result = abi.encodePacked(result,ProtobufLib.encode_uint32(18),encodePrinciple(policy.principal));
-    }
-
-    if (policy.resource_type != 0) {
-        result = abi.encodePacked(result,ProtobufLib.encode_uint32(24),ProtobufLib.encode_int32(policy.resource_type));
-    }
-
-    bytes memory statementsBytes;
-    for (uint i = 0;i<policy.statements.length;i++) {
-        statementsBytes = abi.encodePacked(statementsBytes,ProtobufLib.encode_uint32(42),encodeStatement(policy.statements[i]));
-    }
-
-    result = abi.encodePacked(result,statementsBytes);
-
-    bytes memory expirationTimeBytes;
-    if (policy.expiration_time._seconds != 0) {
-        expirationTimeBytes = abi.encodePacked(expirationTimeBytes,ProtobufLib.encode_uint32(8),ProtobufLib.encode_int64(policy.expiration_time._seconds));
-    }
-
-    if (policy.expiration_time.nanos != 0) {
-        expirationTimeBytes = abi.encodePacked(expirationTimeBytes,ProtobufLib.encode_uint32(16),ProtobufLib.encode_int32(policy.expiration_time.nanos));
-    }
-    return abi.encodePacked(result,expirationTimeBytes);
 }
