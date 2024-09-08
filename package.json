@@ -1,5 +1,14 @@
 {
-  "name": "hardhat-project",
+  "name": "@bnb-attestation-service/bas-contracts",
+  "version": "0.2.0",
+  "description": "Ethereum Attestation Service",
+  "main": "dist/typechain-types/index.js",
+  "types": "dist/typechain-types/index.d.ts",
+  "scripts": {
+    "clean": "rm -rf artifacts cache dist coverage typechain-types out artifacts-zk cache-zk",
+    "compile": "hardhat compile",
+    "recompile": "pnpm clean && pnpm compile"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@openzeppelin/contracts": "^4.9.6",
