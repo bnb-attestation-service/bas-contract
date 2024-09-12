@@ -42,8 +42,8 @@ contract BucketManager is Ownable {
     PackageQueue.FailureHandleStrategy public failureHandleStrategy;
 
 
-    event CreateBucket(string bucketName ,uint32 status);
-    event CreatePolicy(string bucketName, bytes _msgData, uint32 status);
+    event CreateBucket(string bucketName ,uint32 indexed status);
+    event CreatePolicy(string bucketName, bytes _msgData, uint32 indexed status);
     
 	//schemaID => name
 	mapping (bytes32 => mapping(string => Status)) public schemaBuckets;
@@ -54,11 +54,16 @@ contract BucketManager is Ownable {
     mapping(bytes32 => Status) policies;
 
 
-    function _getName(string memory name, bytes32 schemaId) public view returns (string memory){
+    function _getName(string memory name, bytes32 schemaId) internal view returns (string memory){
         if (schemaId == bytes32(0)) {
             return string(abi.encodePacked("bas-", Strings.toHexString(address(this))));
         }
-        require(bytes(name).length < 18, "length of name should < 18");
+
+        bytes memory nameBytes = bytes(name);
+        require(nameBytes.length < 18, "length of name should < 18");
+        for (uint i=0;i <nameBytes.length;i++){
+            require(nameBytes[i] != "-" && nameBytes[i] != "/","name of can not contain '-' and '/'");
+        }
         return string(abi.encodePacked("bas-", name,"-",toHexString(bytes20(schemaId))));
     }
 
@@ -197,7 +202,7 @@ contract BucketManager is Ownable {
         BucketStorage.CreateBucketSynPackage memory createPackage = BucketStorage.CreateBucketSynPackage({
             creator: address(this),
             name: bucketName,
-            visibility: BucketStorage.BucketVisibilityType.Private,
+            visibility: BucketStorage.BucketVisibilityType.PublicRead,
             paymentAddress: address(this),
             primarySpAddress: sp_address_testnet,
             primarySpApprovalExpiredHeight: 0,
@@ -360,13 +365,13 @@ contract BucketManager is Ownable {
                 basBucket = Status.Success;
                 bucketNames.push(bucketName);
             }else {
-                basBucket = Status.Failed;
-            }
-        }else if (status == 1) { 
-            if (schemaId == bytes32(0)) {
                 schemaBuckets[schemaId][name] = Status.Success;
                 bucketNames.push(bucketName);
                 nameOfSchemaId[schemaId].push(name);
+            }
+        }else if (status == 1) { 
+            if (schemaId == bytes32(0)) {
+               basBucket = Status.Failed;
             }else {
                 schemaBuckets[schemaId][name] = Status.Failed;
             }

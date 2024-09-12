@@ -10,6 +10,9 @@ import {IBucketManager} from "./IBucketManager.sol";
 contract BucketRegistry is Initializable,AccessControl {
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
+    event ChangeContorller(address indexed manager, address indexed new_controller);
+    event CreateBucket(address indexed manager, string name);
+
     using EnumerableSet for EnumerableSet.AddressSet;
     modifier isBucketManager() {
         require(registedBuckeManageContracts.contains(msg.sender),"Caller is not a bucket manager contract");
@@ -48,6 +51,7 @@ contract BucketRegistry is Initializable,AccessControl {
     function setBucketName(string memory bucketName) external isBucketManager{
         require (!bucketsNames[bucketName],"The bucket name has registered");
         bucketsNames[bucketName] = true;
+        emit CreateBucket(msg.sender,bucketName);
     }
 
     function updateController(address preController, address  newController) external isBucketManager{
@@ -55,6 +59,7 @@ contract BucketRegistry is Initializable,AccessControl {
             controllers[preController].remove(msg.sender);
         }
         controllers[newController].add(msg.sender);
+        emit ChangeContorller(msg.sender,newController);
     }   
 
     function getBucketManagers(address controller) public view returns (address[] memory) {
