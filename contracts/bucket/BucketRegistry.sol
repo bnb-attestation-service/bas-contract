@@ -44,7 +44,7 @@ contract BucketRegistry is Initializable,AccessControl {
     }
 
     function existBucketName(string memory bucketName) external view returns (bool){
-        return bucketsNames[bucketName] == 0;
+        return bucketsNames[bucketName] != 0;
     }
 
     function setBucketName(string memory bucketName,uint256  bucketId) external isBucketManager{

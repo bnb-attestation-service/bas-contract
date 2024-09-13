@@ -46,21 +46,22 @@ contract BucketManager is Ownable {
     
     string[] public bucketNames;
     mapping (bytes32 => string[]) public nameOfSchemaId;
-    Status public basBucket;
     mapping(bytes32 => Status) policies;
+    bytes32 addressBytes32;
 
 
     function _getName(string memory name, bytes32 schemaId) internal view returns (string memory){
-        if (schemaId == bytes32(0)) {
-            return string(abi.encodePacked("bas-", Strings.toHexString(address(this))));
-        }
-
         bytes memory nameBytes = bytes(name);
-        require(nameBytes.length < 18, "length of name should < 18");
+        require(nameBytes.length < 18 && nameBytes.length > 0, "length of name should < 18 and > 0");
         for (uint i=0;i <nameBytes.length;i++){
             require(isLowercaseLetter(nameBytes[i]) || isDigit(nameBytes[i]) || nameBytes[i] == ',',"Schema bucket name can only include lowercase letters, numbers, commas");
         }
-        return string(abi.encodePacked("bas-", name,"-",toHexString(bytes20(schemaId))));
+
+        if (schemaId == bytes32(0)) {
+            return string(abi.encodePacked("bas-",name,"-",Strings.toHexString(address(this)))); 
+        } else {
+            return string(abi.encodePacked("bas-", name,"-",toHexString(bytes20(schemaId))));
+        }
     }
 
     constructor (
@@ -84,10 +85,11 @@ contract BucketManager is Ownable {
         version = _version;
         IBucketRegistry(bucketRegistry).updateController(owner(),_controller);
         _transferOwnership(_controller);
+        addressBytes32 = bytes32(uint256(uint160(address(this))));
     }
     
 
-    function createSchemaBucket(
+    function createBucket(
 		string memory name,
 		bytes32 schemaId, 
 		bytes memory _executorData,
@@ -96,39 +98,30 @@ contract BucketManager is Ownable {
         address sp_address
 	) public payable onlyOwner returns (string memory) {
          // Verify if the schema exists
-        require(bytes(name).length != 0, "Invalid Name: Name should not be empty");
-		require(schemaBuckets[schemaId][name] != Status.Pending && schemaBuckets[schemaId][name] != Status.Success ,"The bucket of the given schema and name has exsited");
+		if (schemaId != bytes32(0)) {
+            require(schemaBuckets[schemaId][name] != Status.Pending && schemaBuckets[schemaId][name] != Status.Success ,"The bucket of the given schema and name has exsited");
+		    SchemaRecord memory schema = ISchemaRegistry(schemaRegistry).getSchema(schemaId);
+		    require(schema.uid != bytes32(0),"Invalid schemaId");
+        } else {
+            require(schemaBuckets[addressBytes32][name] != Status.Pending && schemaBuckets[addressBytes32][name] != Status.Success ,"The bucket of the given schema and name has exsited");
+        }
 
         string memory bucketName = _getName(name,schemaId);
-        require(!IBucketRegistry(bucketRegistry).existBucketName(bucketName), "The name of bucket for schema has existed");
-		SchemaRecord memory schema = ISchemaRegistry(schemaRegistry).getSchema(schemaId);
-		require(schema.uid != bytes32(0),"Invalid schemaId");
+        require(!IBucketRegistry(bucketRegistry).existBucketName(bucketName), string(abi.encodePacked(bucketName, ":bucket has created")));
         
         // Create the bucket
         bytes memory _callbackData = abi.encode(name, schemaId);
 	    _createBucket(bucketName,_executorData,_callbackData,_callbackGasLimit,_failureHandleStrategy,sp_address);
-        schemaBuckets[schemaId][name] = Status.Pending;
+        
+        if (schemaId != bytes32(0)) {
+            schemaBuckets[schemaId][name] = Status.Pending;
+        } else {
+            schemaBuckets[addressBytes32][name] = Status.Pending;
+        }
+
         return bucketName;
 	}
 	
-
-    function createUserBucket(
-		bytes memory _executorData,
-        uint256 _callbackGasLimit,
-        PackageQueue.FailureHandleStrategy _failureHandleStrategy,
-        address sp_address
-	) external payable onlyOwner returns (string memory){
-	    require(basBucket != Status.Pending && basBucket != Status.Success, "The bas bucket for current contract has existed");
-	    string memory bucketName = _getName("",bytes32(0));
-        require(!IBucketRegistry(bucketRegistry).existBucketName(bucketName), "The name of bucket for schema has existed");
-        bytes memory _callbackData = abi.encode("", bytes32(0));
-
-	    _createBucket(bucketName,_executorData,_callbackData,_callbackGasLimit,_failureHandleStrategy,sp_address);
-	    basBucket = Status.Pending;
-        return bucketName;
-    }
-
-    
     function _createBucket(
         string memory bucketName,
         bytes memory _executorData,
@@ -175,20 +168,21 @@ contract BucketManager is Ownable {
         IBucketHub(bucket_hub).createBucket{ value:totalFee }(createPackage,_callbackGasLimit,_extraData);
     }
 
-    function createSchemaPolicy(
+    function createPolicy(
         string memory name,
         bytes32 schemaId, 
         bytes calldata createPolicyData,
         uint256 _callbackGasLimit,
         PackageQueue.FailureHandleStrategy _failureHandleStrategy
     ) external payable onlyOwner {
-        require (schemaBuckets[schemaId][name] == Status.Success, "The bucket of the given schema and name is not created");
+        bytes32 _schemaId;
+        if (schemaId == bytes32(0)) {
+            _schemaId = addressBytes32;
+        }else {
+            _schemaId = schemaId;
+        }
+        require (schemaBuckets[_schemaId][name] == Status.Success, "The bucket of the given schema and name is not created");
 		_createPolicy(name,schemaId,createPolicyData,_callbackGasLimit,_failureHandleStrategy);
-    }
-
-    function createUserPolicy(bytes calldata createPolicyData,uint256 _callbackGasLimit,PackageQueue.FailureHandleStrategy _failureHandleStrategy) external payable onlyOwner{
-        require (basBucket == Status.Success, "The bucket of this contract is not created");
-        _createPolicy("",bytes32(0),createPolicyData,_callbackGasLimit,_failureHandleStrategy);
     }
 
 
@@ -288,27 +282,24 @@ contract BucketManager is Ownable {
     function _bucketGreenfieldCall(uint32 status,bytes calldata callbackData,uint256 resourceId) internal { 
         (string memory name, bytes32 schemaId) = abi.decode(callbackData,(string, bytes32));
         string memory bucketName = _getName(name,schemaId);
+        bytes32 _schemaId;
+        if (schemaId == bytes32(0)) {
+            _schemaId = addressBytes32;
+        }else {
+            _schemaId = schemaId;
+        }
 
         if (status == 0) {
-            if (schemaId == bytes32(0)) {
-                basBucket = Status.Success;
-                bucketNames.push(bucketName);
-            }else {
-                schemaBuckets[schemaId][name] = Status.Success;
-                bucketNames.push(bucketName);
-                nameOfSchemaId[schemaId].push(name);
-            }
-        }else if (status == 1) { 
-            if (schemaId == bytes32(0)) {
-               basBucket = Status.Failed;
-            }else {
-                schemaBuckets[schemaId][name] = Status.Failed;
-            }
+            schemaBuckets[_schemaId][name] = Status.Success;
+            bucketNames.push(bucketName);
+            nameOfSchemaId[_schemaId].push(name);
             IBucketRegistry(bucketRegistry).setBucketName(bucketName,resourceId);
+
+        }else if (status == 1) { 
+            schemaBuckets[_schemaId][name] = Status.Failed;
         } 
         emit CreateBucket(bucketName,status);
     }
-
 
     function _policyGreenfieldCall(
         uint32 status,
@@ -329,12 +320,15 @@ contract BucketManager is Ownable {
         return (relayFee + minAckRelayFee + _callbackGasLimit * gasPrice,relayFee, minAckRelayFee);
     }
 
-    function getUserBucketStatus() public view returns(Status) {
-        return basBucket;
-    }
 
-    function getSchemaBucketStatus(bytes32 schemaId, string memory name)public view returns(Status) {
-        return schemaBuckets[schemaId][name];
+    function getBucketStatus(bytes32 schemaId, string memory name)public view returns(Status) {
+         bytes32 _schemaId;
+        if (schemaId == bytes32(0)) {
+            _schemaId = addressBytes32;
+        }else {
+            _schemaId = schemaId;
+        }
+        return schemaBuckets[_schemaId][name];
     }
 
     function getPolicyStatus(bytes32 _msgDataHash)public view returns(Status) {

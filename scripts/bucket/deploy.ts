@@ -13,6 +13,7 @@ import {
    PrincipalType,
 } from '@bnb-chain/greenfield-cosmos-types/greenfield/permission/common';
 import { ZERO_BYTES32 } from "../utils";
+import { zeroPadBytes } from "ethers";
 
 const callbackGasLimit = 200000n
 const failureHandleStrategy = 2
@@ -88,7 +89,7 @@ async function deployBucketManager(_factory: string,salt: string) {
     return _bucketManager
 }
 
-async function createUserBucket(_bucketManager: string) {
+async function createBucket(_bucketManager: string, name: string, schemaId:string) {
     const GRPC_URL = 'https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org';
     const GREEN_CHAIN_ID = 'greenfield_5600-1';
     const client = Client.create(GRPC_URL, GREEN_CHAIN_ID);
@@ -101,108 +102,51 @@ async function createUserBucket(_bucketManager: string) {
     const [relayFee, ackRelayFee] = await crossChain.getRelayFees();
 
     const gasPrice =  10_000_000_000n;
+    const bucketName = await bucketManager.getName(name,schemaId)
 
-
-    const userBucketName = await bucketManager.getName("",ZERO_BYTES32);
-
-    const userDataSetBucketFlowRateLimit = ExecutorMsg.getSetBucketFlowRateLimitParams({
-        bucketName:userBucketName,
+    const dataSetBucketFlowRateLimit = ExecutorMsg.getSetBucketFlowRateLimitParams({
+        bucketName:bucketName,
         bucketOwner: _bucketManager,
         operator: _bucketManager,
         paymentAddress: _bucketManager,
         flowRateLimit: '100000000000000000',
     });
 
-    
-    const userExecutorData = userDataSetBucketFlowRateLimit[1];
-    const userValue = 2n * relayFee + ackRelayFee + callbackGasLimit * gasPrice
+    const executorData = dataSetBucketFlowRateLimit[1];
+    const value = 2n * relayFee + ackRelayFee + callbackGasLimit * gasPrice
 
-    console.log('- create user bucket', userBucketName);
+    console.log('- create bucket', bucketName);
     console.log('send crosschain tx!');
-    const resp = await (await bucketManager.createUserBucket(
-        userExecutorData, 
-        callbackGasLimit,
-        failureHandleStrategy,
-        sp_address,
-        {value: userValue })).wait();
-    console.log(`https://testnet.bscscan.com/tx/${resp?.hash}`);
-
-    
-    console.log('waiting for user bucket created..., about 1 minute');
-    await sleep(60); // waiting bucket created
- 
-    const userBucketInfo = await client.bucket.getBucketMeta({ bucketName:userBucketName });
-    const userBucketId = userBucketInfo.body!.GfSpGetBucketMetaResponse.Bucket.BucketInfo.Id;
-
-    console.log('user bucket created, bucket id', userBucketId);
-    const userHexBucketId = `0x000000000000000000000000000000000000000000000000000000000000${BigInt(
-       userBucketId
-    ).toString(16)}`;
-    console.log(`https://testnet.greenfieldscan.com/bucket/${userHexBucketId}`);
-}
-
-async function getUserBucketStatus(_bucketManager: string) {
-    const [signer] = await ethers.getSigners();
-    const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
-    const status = await bucketManager.getUserBucketStatus()
-    console.log("Status of create user bucket is",status)
-
-}
-
-
-async function createSchemaBucket(_bucketManager: string, name: string, schemaId:string) {
-    const GRPC_URL = 'https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org';
-    const GREEN_CHAIN_ID = 'greenfield_5600-1';
-    const client = Client.create(GRPC_URL, GREEN_CHAIN_ID);
-
-    const [signer] = await ethers.getSigners();
-    const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
-
-    const CROSS_CHAIN = await bucketManager.cross_chain();
-    const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN));
-    const [relayFee, ackRelayFee] = await crossChain.getRelayFees();
-
-    const gasPrice =  10_000_000_000n;
-    const schemaBucketName = await bucketManager.getName(name,schemaId)
-
-    const schemaDataSetBucketFlowRateLimit = ExecutorMsg.getSetBucketFlowRateLimitParams({
-        bucketName:schemaBucketName,
-        bucketOwner: _bucketManager,
-        operator: _bucketManager,
-        paymentAddress: _bucketManager,
-        flowRateLimit: '100000000000000000',
-    });
-
-    const schemaExecutorData = schemaDataSetBucketFlowRateLimit[1];
-    const schemaValue = 2n * relayFee + ackRelayFee + callbackGasLimit * gasPrice
-
-    console.log('- create schema bucket', schemaBucketName);
-    console.log('send crosschain tx!');
-    const resp1 = await (await bucketManager.createSchemaBucket(
+    const resp1 = await (await bucketManager.createBucket(
         name,
         schemaId, 
-        schemaExecutorData, 
+        executorData, 
         callbackGasLimit,
         failureHandleStrategy,
         sp_address,
-        {value: schemaValue })).wait();
+        {value: value })).wait();
     console.log(`https://testnet.bscscan.com/tx/${resp1?.hash}`);
 
-    console.log('waiting for user bucket created..., about 1 minute');
+    console.log('waiting for bucket created..., about 1 minute');
     await sleep(60); // waiting bucket created
 
-    const schemaBucketInfo = await client.bucket.getBucketMeta({ bucketName:schemaBucketName });
+    const schemaBucketInfo = await client.bucket.getBucketMeta({ bucketName:bucketName });
     const schemaBucketId = schemaBucketInfo.body!.GfSpGetBucketMetaResponse.Bucket.BucketInfo.Id;
 
-    console.log('schema bucket created, bucket id', schemaBucketId);
+    console.log('bucket created, bucket id', schemaBucketId);
     const schemaHexBucketId = `0x000000000000000000000000000000000000000000000000000000000000${BigInt(
         schemaBucketId
     ).toString(16)}`;
     console.log(`https://testnet.greenfieldscan.com/bucket/${schemaHexBucketId}`);
 }
 
-async function getSchemaBucketStatus(){}
-
+async function getBucketStatus(_bucketManager: string, name: string, schemaId:string) {
+    const [signer] = await ethers.getSigners();
+    const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
+    const status = await bucketManager.getBucketStatus(schemaId,name)
+    const bucketName = await bucketManager.getName(name,schemaId)
+    console.log(`Status of bucket ${bucketName} is ${status}`)
+}
 
 async function getBucketId(_bucketManager: string,_registry: string,name: string, schemaId:string) {
     const [signer] = await ethers.getSigners();
@@ -215,70 +159,7 @@ async function getBucketId(_bucketManager: string,_registry: string,name: string
 }
 
 
-
-async function createUserPolicy(_bucketManager: string ,eoa : string) {
-    const [signer] = await ethers.getSigners();
-    const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
-
-    const GRPC_URL = 'https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org';
-    const GREEN_CHAIN_ID = 'greenfield_5600-1';
-    const client = Client.create(GRPC_URL, GREEN_CHAIN_ID);
-     
-    const bucketName = await bucketManager.getName("",ZERO_BYTES32);
-    const bucketInfo = await client.bucket.getBucketMeta({ bucketName });
-    const bucketId = bucketInfo.body!.GfSpGetBucketMetaResponse.Bucket.BucketInfo.Id;
-
-    const CROSS_CHAIN = await bucketManager.cross_chain();
-    const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN));
-
-    const [relayFee, ackRelayFee] = await crossChain.getRelayFees();
-    const gasPrice =  10000000000n;
-
-    const userValue = relayFee + ackRelayFee + callbackGasLimit * gasPrice
-
-
-    const policyDataToAllowUserOperateBucket = Policy.
-     encode({
-        id: '0',
-        resourceId: bucketId, 
-        resourceType: ResourceType.RESOURCE_TYPE_BUCKET,
-        statements: [
-            {
-                effect: Effect.EFFECT_ALLOW,
-                actions: [
-                    ActionType.ACTION_CREATE_OBJECT
-                ], 
-                resources: [],
-            },
-        ],
-        principal: {
-            type: PrincipalType.PRINCIPAL_TYPE_GNFD_ACCOUNT,
-            value: eoa,
-        },
-    }).finish();
-
-    const resp = await bucketManager.createUserPolicy(
-        policyDataToAllowUserOperateBucket,
-        callbackGasLimit,
-        failureHandleStrategy,
-        { value: userValue});
-    console.log(`https://testnet.bscscan.com/tx/${resp?.hash}`);
-    console.log(
-        `policy set success, ${eoa} could create object ${bucketName} (id: ${bucketId}) now on Greenfield`
-    );
-
-    return ethers.keccak256(policyDataToAllowUserOperateBucket)
-}
-
-async function getPolicyStatus(_bucketManager: string, _hash :string) {
-    const [signer] = await ethers.getSigners();
-    const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
-
-    const status = await bucketManager.getPolicyStatus(_hash)
-    console.log(`Status of Policy ${_hash} is ${status}`)
-}
-
-async function createSchemaPolicy(_bucketManager: string ,eoa : string, name: string, schemaId:string) {
+async function createPolicy(_bucketManager: string ,eoa : string, name: string, schemaId:string) {
     const [signer] = await ethers.getSigners();
     const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
 
@@ -293,6 +174,9 @@ async function createSchemaPolicy(_bucketManager: string ,eoa : string, name: st
     const CROSS_CHAIN = await bucketManager.cross_chain();
     const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN));
     const [relayFee, ackRelayFee] = await crossChain.getRelayFees();
+
+    const gasPrice =  10_000_000_000n;
+    const value = relayFee + ackRelayFee + callbackGasLimit * gasPrice
 
     const policyDataToAllowUserOperateBucket = Policy.
      encode({
@@ -316,18 +200,28 @@ async function createSchemaPolicy(_bucketManager: string ,eoa : string, name: st
         },
     }).finish();
 
-    const resp =  await bucketManager.createSchemaPolicy(
+    const resp =  await bucketManager.createPolicy(
         name,
         schemaId,
         policyDataToAllowUserOperateBucket,
         callbackGasLimit,
         failureHandleStrategy,
-        { value: relayFee+ackRelayFee})
+        {value})
     console.log(`https://testnet.bscscan.com/tx/${resp?.hash}`);
 
     console.log(
         `policy set success, ${eoa} could create object ${bucketName} (id: ${bucketId}) now on Greenfield`
     );
+    return ethers.keccak256(policyDataToAllowUserOperateBucket)
+}
+
+
+async function getPolicyStatus(_bucketManager: string, _hash :string) {
+    const [signer] = await ethers.getSigners();
+    const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
+
+    const status = await bucketManager.getPolicyStatus(_hash)
+    console.log(`Status of Policy ${_hash} is ${status}`)
 }
 
 
@@ -347,34 +241,41 @@ async function getControlledManagers(_registry: string) {
 }
 
 async function main() {
-    const registry = await deployRegistry()
-    // const registry = "0x84f4E66773d8e0b771dAa8B782E7c129eDDCDADa"
+    // const registry = await deployRegistry()
+    // const factory = await deployFactory(registry)
+    // await setFactoryAddressForRegistry(registry,factory)
+    // const salt = ethers.hashMessage("liubo5")
+    // const manager = await deployBucketManager(factory,salt)
 
-    const factory = await deployFactory(registry)
-    // const factory = "0x92f123Eaa29fb09D975d9C93a35ecE7aC297Eb8F"
+    // await getControlledManagers(registry)
+    // await sleep(60)
 
-    await setFactoryAddressForRegistry(registry,factory)
-    const salt = ethers.hashMessage("liubo5")
+    const registry = "0x69898E314B671357b74DCC4b14469F588884e10e"
+    const factory = "0xF46574d4B5AfbA81234CD04eFb24411798D7CE90"
+    const manager = "0x7af5fE11F2bAd13cFd659f5F7D9baF8c7d09d22B"
 
-    const manager = await deployBucketManager(factory,salt)
-
-    await getControlledManagers(registry)
-    // const manager = "0x7F139040c4afDBA5ea2E5318B428b93A318dFA6d"
-    await sleep(60)
+    
 
     const schemaId = "0xacc308075dabd756f3806f0f2a0d919d12b13597ba4791de96283aa646c2c5b5";
-    const name = "liubo5"  
-
+    const name = "bascan"  
     const eoa = '0x471543A3bd04486008c8a38c5C00543B73F1769e'
 
-    await createUserBucket(manager)
-    await getUserBucketStatus(manager)
+    // user bucket 
+    // await createBucket(manager,name,ZERO_BYTES32)
+    // await getBucketStatus(manager,name,ZERO_BYTES32)
+    // await getBucketId(manager,registry,name,ZERO_BYTES32)
+    // await sleep(60)
+    // const policyHash1 = await createPolicy(manager,eoa,name,ZERO_BYTES32)
+    // await getPolicyStatus(manager,"0x2aee815d88bff1a64f6c6e5df3350f4ae1165d0a62e73e2290394dd0e9ef8815")
 
-    await createUserPolicy(manager,eoa)
-    await getUserBucketId(manager)
-
-    await createSchemaBucket(manager,name,schemaId)
-    await createSchemaPolicy(manager,eoa,name,schemaId)
+    // //schema bucket
+    // await createBucket(manager,name,schemaId)
+    // await getBucketStatus(manager,name,schemaId)
+    // await getBucketId(manager,registry,name,schemaId)
+    // const policyHash2 = await createPolicy(manager,eoa,name,schemaId)
+    // await sleep(60)
+    await getPolicyStatus(manager,"0x26992e8422ce91e00399382ffb97c55f4a55d042190a6a1ed2ccda70cb689f25")
+    
   }
   // We recommend this pattern to be able to use async/await everywhere
   // and properly handle errors.
