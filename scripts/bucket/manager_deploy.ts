@@ -37,10 +37,7 @@ async function deploy() {
         CROSS_CHAIN,
         BUCKET_HUB,
         PERMISSION_HUB,
-        SP_ADDRESS_TESTNET,
         GREENFIELD_EXECUTOR,
-        callbackGasLimit,
-        failureHandleStrategy,
         "1.0.0"
     )
 

@@ -58,7 +58,7 @@
     const [relayFee, ackRelayFee] = await crossChain.getRelayFees();
 
     // 2. createBucket
-    const bucketName = 'test-' + addr.substring(2, 6).toLowerCase();
+    const bucketName = 'test-' + addr.substring(2,13).toLowerCase();
     // - transferOutAmt: 0.1 BNB to demo contract on Greenfield
     // - set bucket flow rate limit to this bucket
     // - create bucket: 'test-approve-eoa-upload', its owner is demo contract
@@ -71,15 +71,16 @@
     });
     const executorData = dataSetBucketFlowRateLimit[1];
     const transferOutAmt = ethers.parseEther('0.001');
-    const gasPrice =  10_000_000_000n; // 10 GWei
-    const callbackGasLimit = 200_000n 
-    const value = transferOutAmt + 3n * relayFee + 2n * ackRelayFee + callbackGasLimit * gasPrice;
-    const failureHandleStrategy = 2
+    const value = transferOutAmt + 3n * relayFee + 2n * ackRelayFee;
 
     console.log('- transfer out to demo contract on greenfield', transferOutAmt);
     console.log('- create bucket', bucketName);
     console.log('send crosschain tx!');
-    const resp = await (await demo.createBucket(bucketName, transferOutAmt, executorData,callbackGasLimit, failureHandleStrategy ,{ value:value })).wait();
+    const resp = await (await demo.createBucket(
+        bucketName, 
+        transferOutAmt,
+        executorData,
+        { value:value })).wait();
     console.log(`https://testnet.bscscan.com/tx/${resp?.hash}`);
 
      // 3. get bucket id by name
@@ -117,9 +118,6 @@
     const CROSS_CHAIN = await demo.CROSS_CHAIN();
     const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN));
     const [relayFee, ackRelayFee] = await crossChain.getRelayFees();
-    const gasPrice =  10_000_000_000n; // 10 GWei
-    const callbackGasLimit = 200_000n; 
-    const failureHandleStrategy = 2;
 
 
     const policyDataToAllowUserOperateBucket = Policy.
@@ -149,7 +147,9 @@
         },
     }).finish();
 
-    await demo.createPolicy(policyDataToAllowUserOperateBucket,callbackGasLimit, failureHandleStrategy, { value: 3n * relayFee + 2n * ackRelayFee + callbackGasLimit * gasPrice});
+    await demo.createPolicy(
+        policyDataToAllowUserOperateBucket,
+        { value: 3n * relayFee + 2n * ackRelayFee});
     // console.log(
     //     `policy set success, ${readerEoaAccount} could read object ${objectName} (id: ${objectId}) now on Greenfield`
     // );
@@ -166,11 +166,11 @@
 
 async function main() {
 //   const addr = await deploy();
-//   const addr = "0x801B3927E0c041B16117b2b119e116cFB6a0f2c3"
+  const addr = "0xC2dA83828b991E29819fF5535f706884C3829175"
 //   await execute(addr);
 //   await sleep(60)
-//   await createBucket(addr)
-await allocatePolicy()
+  await createBucket(addr)
+// await allocatePolicy()
 }
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
