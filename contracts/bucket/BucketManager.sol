@@ -43,7 +43,7 @@ contract BucketManager is Ownable {
 
 
     event CreateBucket(string bucketName ,uint32 indexed status);
-    event CreatePolicy(string bucketName, bytes _msgData, uint32 indexed status);
+    event CreatePolicy(string bucketName, bytes32 indexed _msgDataHash, uint32 indexed status);
     
 	//schemaID => name
 	mapping (bytes32 => mapping(string => Status)) public schemaBuckets;
@@ -127,13 +127,6 @@ contract BucketManager is Ownable {
          // Verify if the schema exists
         require(bytes(name).length != 0, "Invalid Name: Name should not be empty");
 		require(schemaBuckets[schemaId][name] != Status.Pending && schemaBuckets[schemaId][name] != Status.Success ,"The bucket of the given schema and name has exsited");
-
-        (uint256 relayFee, uint256 ackRelayFee) = ICrossChain(cross_chain).getRelayFees();
-        if (_executorData.length == 0)  {
-            require(msg.value == relayFee + ackRelayFee, "msg.value not enough");
-        } else {
-            require(msg.value == relayFee * 2 + ackRelayFee, "msg.value not enough");
-        } 
 
         string memory bucketName = _getName(name,schemaId);
         require(!IBucketRegistry(bucketRegistry).existBucketName(bucketName), "The name of bucket for schema has existed");
@@ -270,10 +263,10 @@ contract BucketManager is Ownable {
         uint256 _callbackGasLimit,
         PackageQueue.FailureHandleStrategy _failureHandleStrategy
         ) internal {
-            bytes memory _callbackData = abi.encode(name,schemaId,createPolicyData);
-
             bytes32 dataHash = keccak256(createPolicyData);
             require(policies[dataHash] != Status.Pending && policies[dataHash] != Status.Success,"The policy has created");
+            
+            bytes memory _callbackData = abi.encode(name,schemaId,dataHash);
             CmnStorage.ExtraData memory _extraData = CmnStorage.ExtraData({
                 appAddress: address(this),
                 refundAddress: msg.sender,
@@ -384,16 +377,14 @@ contract BucketManager is Ownable {
     function _policyGreenfieldCall(
         uint32 status,
         bytes calldata callbackData) internal {
-
-        (string memory name, bytes32 schemaId,bytes memory createPolicyData) = abi.decode(callbackData,(string, bytes32,bytes));    
-        bytes32 dataHash = keccak256(callbackData);
+        (string memory name, bytes32 schemaId,bytes32 dataHash) = abi.decode(callbackData,(string, bytes32,bytes32));    
         if (status == 0) {
             policies[dataHash] = Status.Success;
         }else if(status == 1){
             policies[dataHash] = Status.Failed;
         }      
         string memory bucketName = _getName(name, schemaId);
-        emit CreatePolicy(bucketName, createPolicyData, status);  
+        emit CreatePolicy(bucketName, dataHash, status);  
     }   
 
     function _getTotelFee(uint256 _callbackGasLimit) internal returns (uint256 totalFee,uint256 relayFee,uint256 minAckRelayFee) {

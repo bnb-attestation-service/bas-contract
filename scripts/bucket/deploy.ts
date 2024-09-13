@@ -78,7 +78,7 @@ async function deployBucketManager(_factory: string,salt: string) {
     const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN));
     const [relayFee, ackRelayFee] = await crossChain.getRelayFees();
 
-    const transferOutAmt = ethers.parseEther('0.005');
+    const transferOutAmt = ethers.parseEther('0');
 
     const _bucketManager = await factory.getManagerAddress(salt);
     console.log("deploy manager:", _bucketManager)
@@ -103,7 +103,7 @@ async function createUserBucket(_bucketManager: string) {
     const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN));
     const [relayFee, ackRelayFee] = await crossChain.getRelayFees();
 
-    const gasPrice =  10000000000n;
+    const gasPrice =  10_000_000_000n;
     const callbackGasLimit = await bucketManager.callbackGasLimit();
 
     const userBucketName = await bucketManager.getName("",ZERO_BYTES32);
@@ -132,11 +132,19 @@ async function createUserBucket(_bucketManager: string) {
     const userBucketInfo = await client.bucket.getBucketMeta({ bucketName:userBucketName });
     const userBucketId = userBucketInfo.body!.GfSpGetBucketMetaResponse.Bucket.BucketInfo.Id;
 
-    console.log('usre bucket created, bucket id', userBucketId);
+    console.log('user bucket created, bucket id', userBucketId);
     const userHexBucketId = `0x000000000000000000000000000000000000000000000000000000000000${BigInt(
        userBucketId
     ).toString(16)}`;
     console.log(`https://testnet.greenfieldscan.com/bucket/${userHexBucketId}`);
+}
+
+async function getUserBucketStatus(_bucketManager: string) {
+    const [signer] = await ethers.getSigners();
+    const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
+    const status = await bucketManager.getUserBucketStatus()
+    console.log("Status of create user bucket is",status)
+
 }
 
 
@@ -152,7 +160,7 @@ async function createSchemaBucket(_bucketManager: string, name: string, schemaId
     const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN));
     const [relayFee, ackRelayFee] = await crossChain.getRelayFees();
 
-    const gasPrice =  10000000000n;
+    const gasPrice =  10_000_000_000n;
     const callbackGasLimit = await bucketManager.callbackGasLimit();
     const schemaBucketName = await bucketManager.getName(name,schemaId)
 
@@ -184,6 +192,7 @@ async function createSchemaBucket(_bucketManager: string, name: string, schemaId
     ).toString(16)}`;
     console.log(`https://testnet.greenfieldscan.com/bucket/${schemaHexBucketId}`);
 }
+
 
 async function createUserPolicy(_bucketManager: string ,eoa : string) {
     const [signer] = await ethers.getSigners();
@@ -259,7 +268,9 @@ async function createSchemaPolicy(_bucketManager: string ,eoa : string, name: st
             {
                 effect: Effect.EFFECT_ALLOW,
                 actions: [
-                    ActionType.ACTION_CREATE_OBJECT
+                    ActionType.ACTION_CREATE_OBJECT,
+                    ActionType.ACTION_GET_OBJECT,
+                    ActionType.ACTION_LIST_OBJECT
                 ], 
                 resources: [],
             },
@@ -295,25 +306,27 @@ async function getControlledManagers(_registry: string) {
 }
 
 async function main() {
-    const registry = await deployRegistry()
-    // const registry = "0x124669dA1546307851d9AdB0aF139e9678a82282"
+    // const registry = await deployRegistry()
+    const registry = "0x320c1255690e3A9B687B4E0C1AD68BD6EBa3F0e4"
 
-    const factory = await deployFactory(registry)
-    // const factory = "0x59B6A989a7c09Df1942E486aa2526C0334ab940f"
+    // const factory = await deployFactory(registry)
+    const factory = "0x75e09Fb1B38219d6243598186AcFfEa17eA2970C"
 
-    await setFactoryAddressForRegistry(registry,factory)
-    const salt = ethers.hashMessage("test-salt-aad123")
+    // await setFactoryAddressForRegistry(registry,factory)
+    // const salt = ethers.hashMessage("liubo2")
 
-    const manager = await deployBucketManager(factory,salt)
+    // const manager = await deployBucketManager(factory,salt)
 
-    await getControlledManagers(registry)
-    // const manager = "0x65061Ba378351809d6dBFdB33eFD50FF43C3E2Ac"
+    // await getControlledManagers(registry)
+    const manager = "0xbB22e3E180c218efdeC168a94ECb522Ac734de8b"
 
-    // const schemaId = "0xacc308075dabd756f3806f0f2a0d919d12b13597ba4791de96283aa646c2c5b5";
-    // const name = "thdsssrr"
-    // const eoa = "0xF7a381D4c5753775757D3445aBdc2cdFCA1b5BB4"    
+    const schemaId = "0xacc308075dabd756f3806f0f2a0d919d12b13597ba4791de96283aa646c2c5b5";
+    const name = "goodName"  
 
-    // await createUserBucket(manager)
+    const eoa = '0x471543A3bd04486008c8a38c5C00543B73F1769e'
+
+    await createUserBucket(manager)
+    // await getUserBucketStatus(manager)
     // await createUserPolicy(manager,eoa)
 
     // await createSchemaBucket(manager,name,schemaId)
