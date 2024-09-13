@@ -11,7 +11,7 @@ contract BucketRegistry is Initializable,AccessControl {
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     event ChangeContorller(address indexed manager, address indexed new_controller);
-    event CreateBucket(address indexed manager, string name);
+    event CreateBucket(address indexed manager, string name,uint256 id);
 
     using EnumerableSet for EnumerableSet.AddressSet;
     modifier isBucketManager() {
@@ -22,9 +22,8 @@ contract BucketRegistry is Initializable,AccessControl {
     //map user  => bucket manage contracts
     mapping(address => EnumerableSet.AddressSet) private controllers;
 
-    //created bucket name
-    mapping(string => bool) public bucketsNames;
-
+    //created bucket name => bucket Id
+    mapping(string => uint256) public bucketsNames;
     EnumerableSet.AddressSet private registedBuckeManageContracts;
     
     address public bucketFactory;
@@ -45,13 +44,13 @@ contract BucketRegistry is Initializable,AccessControl {
     }
 
     function existBucketName(string memory bucketName) external view returns (bool){
-        return bucketsNames[bucketName];
+        return bucketsNames[bucketName] == 0;
     }
 
-    function setBucketName(string memory bucketName) external isBucketManager{
-        require (!bucketsNames[bucketName],"The bucket name has registered");
-        bucketsNames[bucketName] = true;
-        emit CreateBucket(msg.sender,bucketName);
+    function setBucketName(string memory bucketName,uint256  bucketId) external isBucketManager{
+        require (bucketsNames[bucketName] == 0,"The bucket name has registered");
+        bucketsNames[bucketName] = bucketId;
+        emit CreateBucket(msg.sender,bucketName,bucketId);
     }
 
     function updateController(address preController, address  newController) external isBucketManager{

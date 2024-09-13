@@ -33,10 +33,6 @@ contract BucketFactory is Initializable{
     string public version;
     address public admin;
     
-    // constructor () Ownable(){
-    //     _disableInitializers();
-    // }
-
 
     function initialize(
         address _bucketRegistry,
@@ -45,10 +41,8 @@ contract BucketFactory is Initializable{
         address _cross_chain,
         address _bucket_hub,
         address _permission_hub,
-        address _sp_address_testnet,
-        address _greenfield_executor,
-        uint256 _callbackGasLimit,
-        uint8   _failureHandlerStrategy
+        address _greenfield_executor
+
     ) public initializer{
         bucketRegistry = _bucketRegistry;
         schemaRegistry = _schemaRegistry;
@@ -56,11 +50,8 @@ contract BucketFactory is Initializable{
         cross_chain = _cross_chain;
         bucket_hub = _bucket_hub;
         permission_hub = _permission_hub;
-        sp_address_testnet = _sp_address_testnet;
         greenfield_executor = _greenfield_executor;
 
-        callbackGasLimit = _callbackGasLimit;
-        failureHandlerStrategy = _failureHandlerStrategy;
         admin = msg.sender;
     }
 
@@ -82,10 +73,7 @@ contract BucketFactory is Initializable{
             cross_chain,
             bucket_hub,
             permission_hub,
-            sp_address_testnet,
             greenfield_executor,
-            callbackGasLimit,
-            failureHandlerStrategy,
             version
         );
         emit CreateBucketManager(msg.sender, address(bucketManager));
@@ -103,29 +91,17 @@ contract BucketFactory is Initializable{
             cross_chain,
             bucket_hub,
             permission_hub,
-            sp_address_testnet,
             greenfield_executor,
-            callbackGasLimit,
-            failureHandlerStrategy,
             version)));
     }
 
     function getManagerAddress(bytes32 _salt) public view returns (address) {
     bytes32 addrHash = keccak256(abi.encodePacked(
-        bytes1(0xff), // 这里可以写 hex'ff'  不能写 "0xff"
-        address(this), // 这里是调用create2的合约，在本文中就是当前的Factory合约
-        _salt, // 盐值
-        _getBytecodeHash() // 这里可以提前进行 keccak256 后写到这里，写法是 bytes32(0xABC...) 或 hex'ABC...'，不能写 "0xABC..."
+        bytes1(0xff), 
+        address(this), 
+        _salt, 
+        _getBytecodeHash() 
     ));
-    // 将最后 20 个字节的哈希值转换为地址
     return address(uint160(uint(addrHash)));    
-    }
-
-    function setCallbackGasLimit(uint256 _callbackGasLimit) external onlyOwner() {
-        callbackGasLimit = _callbackGasLimit;
-    }
-
-    function setFailureHandleStrategy(uint8 _failureHandleStrategy) external onlyOwner() {
-        failureHandlerStrategy = _failureHandleStrategy;
     }
 }
