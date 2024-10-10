@@ -80,3 +80,5 @@ contracts/tests/
 
 ./test/Lock.ts
 .openzeppelin/
+
+scripts/test.ts

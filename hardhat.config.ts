@@ -54,6 +54,10 @@ const config: HardhatUserConfig = {
       url: OPBNB_TEST_RPC,
       accounts: [PRIVATE_KEY],
       gasPrice: 10008
+    },
+    localhost:{
+      url: "http://127.0.0.1:8545",
+      chainId: 31337
     }
   },
   etherscan:{

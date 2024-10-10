@@ -1,10 +1,30 @@
 import { ZeroAddress,solidityPackedKeccak256 }  from  "ethers";
 
 export const SCHEMAS = [
-    { schema: 'bytes32 schemaId,string name', name: 'Name a Schema' },
-    { schema: 'bytes32 schemaId,string description', name: 'Schema Description' },
-    { schema: 'bytes32 schemaId,string context', name: 'Schema Context' },
-    { schema: 'bytes32 schemaId,[]string attestor', name: 'Valid Schema Attestors' },
+    // { schema: 'bytes32 schemaId,string name', name: 'Name a Schema' },
+    // { schema: 'bytes32 schemaId,string description', name: 'Schema Description' },
+    // { schema: 'bytes32 schemaId,string context', name: 'Schema Context' },
+    // { schema: 'bytes32 schemaId,[]string attestor', name: 'Valid Schema Attestors' },
+
+    {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool bnSpotVolumeLe100U",name:"BN Spot Volume > 100U", point: 200},
+    {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool bnKYCUser",name:"BN KYC User", point: 100},
+    {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool bnBalanceLe100U",name:"BN Balance > 100U", point: 200},
+    {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool bnFirstTxWithinOneWeek",name:"BN First Tx Within OneWeek", point: 300},
+    {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool okxKYCUser",name:"OKX KYC Account", point: 100},
+    {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool bybitKYCUser",name:"Bybit KYC Account", point: 100},
+
+    {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool followBNBChainTwitter",name:"Follow BNB Chain Twitter", point: 50},
+    {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool followBASTwitter",name:"Follow BAS Twitter", point: 50},
+    {schema: "bool bnbOnChainLe1",name:"BNB on Chain > 1", point: 100},
+
+    
+    {schema: "bool tgOwnership",name:"TG Ownership", point: 50},
+    {schema: "bool tgMember",name:"TG Member", point: 50},
+    
+    {schema: "bool voteOneTimes",name:"Vote One Times", point: 100},
+    {schema: "bool vote5Times",name:"Vote 5 Times", point: 200},
+    {schema: "bool vote10Times",name:"Vote 10 Times", point: 400},
+   
 
     // { schema: 'bool like', name: 'Like' },
     // { schema: 'address contractAddress,bool trusted', name: 'Trust a Contract' },
