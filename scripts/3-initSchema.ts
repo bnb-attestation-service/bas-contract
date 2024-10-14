@@ -15,6 +15,7 @@ async function initSchema(_registrySchema:string,pointResolver:string) {
 
     for (const {schema} of SCHEMAS) {
         const resp = await registrySchema.connect(signer).register(schema,pointResolver,true)
+        await resp.wait()
         console.log(`Registered schema ${schema} with UID ${getSchemaUID(schema, pointResolver, true)} in tx ${resp.hash}`);
     }
 }

@@ -91,9 +91,10 @@ function getSchemaIdAndPoint(decimals:bigint,resolver: string) {
 
 async function main() {
     const [decimals,erc20Point] = await deployERC20Point();
+    // const decimals = 18n
     // const erc20Point = '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
-    const bas = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
-    const indexer  = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+    const bas = "0xFC5163423ae16A1d7aa26d4D60c3Ae5DE33AA3cA";
+    const indexer  = "0x1fcC6E4d2Ef76118cD8A8B4993f327E9b5067400"
     
     const [signer] = await ethers.getSigners();
     const validAttestor = [signer.address];
@@ -101,8 +102,8 @@ async function main() {
     const pointResolver =  await  deployPointResolver(indexer,signer.address,erc20Point.toString(),bas,validAttestor,[],[])
     await approveToResolver(pointResolver,erc20Point.toString(), 21_000_000_000_000_000_000_000_000n)
 
-    
-    const registrySchema = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+    // const pointResolver = "0xFc0b73fb747e550A1fd703EbAA7ee351651A644c"
+    const registrySchema = "0x9676dC3469B70f67f8968A832C9ef7eDE3C1AB45"
     await initSchema(registrySchema,pointResolver);
     await initSchemaName(bas,pointResolver);
 
