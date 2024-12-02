@@ -17,7 +17,44 @@ import { zeroPadBytes } from "ethers";
 
 const callbackGasLimit = 200000n
 const failureHandleStrategy = 2
-const sp_address = "0x1eb29708f59f23fe33d6f1cd3d54f07636ff466a"
+// const sp_address = "0x1eb29708f59f23fe33d6f1cd3d54f07636ff466a"
+
+//bsc testnet
+// const TOKEN_HUB = "0xED8e5C546F84442219A5a987EE1D820698528E04";
+// const CROSS_CHAIN = "0xa5B2c9194131A4E0BFaCbF9E5D6722c873159cb7";
+// const BUCKET_HUB = "0x5BB17A87D03620b313C39C24029C94cB5714814A";
+// const PERMISSION_HUB = "0x25E1eeDb5CaBf288210B132321FBB2d90b4174ad";
+// const SP_ADDRESS_TESTNET = "0x1eb29708f59f23fe33d6f1cd3d54f07636ff466a";
+// const GREENFIELD_EXECUTOR = "0x3E3180883308e8B4946C9a485F8d91F8b15dC48e";
+// const SCHEMA_REGISTRY = "0x08C8b8417313fF130526862f90cd822B55002D72"
+
+//opbnb testnet
+// const TOKEN_HUB = "0x59614C9e9B5Df6dF4dc9e457cc7F3a67D796d3b2";
+// const CROSS_CHAIN = "0xF0Bcf6E4F72bCB33b944275dd5c9d4540a259eB9";
+// const BUCKET_HUB = "0xCAB5728B7cc21D0056E237D371b28efEEBFd8C2d";
+// const PERMISSION_HUB = "0x089e97333da0B4260131068b7492D10fbEeC67BC";
+// const SP_ADDRESS_TESTNET = "0x5FFf5A6c94b182fB965B40C7B9F30199b969eD2f";
+// const GREENFIELD_EXECUTOR = "0x4bF975A172793FbcFff30Ffe5b3141A5C5aeBE52";
+// const SCHEMA_REGISTRY = "0x9676dC3469B70f67f8968A832C9ef7eDE3C1AB45"
+
+//bsc mainnet
+const TOKEN_HUB = "0xeA97dF87E6c7F68C9f95A69dA79E19B834823F25";
+const CROSS_CHAIN = "0x77e719b714be09F70D484AB81F70D02B0E182f7d";
+const BUCKET_HUB = "0xE909754263572F71bc6aFAc837646A93f5818573";
+const PERMISSION_HUB = "0xe1776006dBE9B60d9eA38C0dDb80b41f2657acE8";
+const SP_ADDRESS_TESTNET = "0x51dbbf9b3f02b4471c0bf5f7d1fa7bc86242138c";
+const GREENFIELD_EXECUTOR = "0xFa39D9111D927836b14D071d43e0aAD9cE83bBBf";
+const SCHEMA_REGISTRY = "0x5e905F77f59491F03eBB78c204986aaDEB0C6bDa"
+
+
+//opbnb mainnet
+// const TOKEN_HUB = "0x723987D45BA424D562b087eE032b8C27F2E7b689";
+// const CROSS_CHAIN = "0x7E376AEFAF05E20e3eB5Ee5c08fE1B9832b175cE";
+// const BUCKET_HUB = "0xDbf8aEcB0F697A5c71baA0C1470Ba8D7f0395018";
+// const PERMISSION_HUB = "0x979876507F1395E5D391F9Dbef68468a22162B8D";
+// const SP_ADDRESS_TESTNET = "0x5FFf5A6c94b182fB965B40C7B9F30199b969eD2f";
+// const GREENFIELD_EXECUTOR = "0xdFc5DC31bfbf992C19C171db273A028736322Ec4";
+// const SCHEMA_REGISTRY = "0x65CFBDf1EA0ACb7492Ecc1610cfBf79665DC631B"
 
 async function deployRegistry() {
     const [signer] = await ethers.getSigners();
@@ -32,44 +69,6 @@ async function deployRegistry() {
 }
 
 async function deployFactory(bucketRegistry: string) {
-    //bsc testnet
-    // const TOKEN_HUB = "0xED8e5C546F84442219A5a987EE1D820698528E04";
-    // const CROSS_CHAIN = "0xa5B2c9194131A4E0BFaCbF9E5D6722c873159cb7";
-    // const BUCKET_HUB = "0x5BB17A87D03620b313C39C24029C94cB5714814A";
-    // const PERMISSION_HUB = "0x25E1eeDb5CaBf288210B132321FBB2d90b4174ad";
-    // const SP_ADDRESS_TESTNET = "0x5FFf5A6c94b182fB965B40C7B9F30199b969eD2f";
-    // const GREENFIELD_EXECUTOR = "0x3E3180883308e8B4946C9a485F8d91F8b15dC48e";
-    // const SCHEMA_REGISTRY = "0x08C8b8417313fF130526862f90cd822B55002D72"
-
-    //opbnb testnet
-    const TOKEN_HUB = "0x59614C9e9B5Df6dF4dc9e457cc7F3a67D796d3b2";
-    const CROSS_CHAIN = "0xF0Bcf6E4F72bCB33b944275dd5c9d4540a259eB9";
-    const BUCKET_HUB = "0xCAB5728B7cc21D0056E237D371b28efEEBFd8C2d";
-    const PERMISSION_HUB = "0x089e97333da0B4260131068b7492D10fbEeC67BC";
-    const SP_ADDRESS_TESTNET = "0x5FFf5A6c94b182fB965B40C7B9F30199b969eD2f";
-    const GREENFIELD_EXECUTOR = "0x4bF975A172793FbcFff30Ffe5b3141A5C5aeBE52";
-    const SCHEMA_REGISTRY = "0x9676dC3469B70f67f8968A832C9ef7eDE3C1AB45"
-
-    //bsc mainnet
-    // const TOKEN_HUB = "0xeA97dF87E6c7F68C9f95A69dA79E19B834823F25";
-    // const CROSS_CHAIN = "0x77e719b714be09F70D484AB81F70D02B0E182f7d";
-    // const BUCKET_HUB = "0xE909754263572F71bc6aFAc837646A93f5818573";
-    // const PERMISSION_HUB = "0xe1776006dBE9B60d9eA38C0dDb80b41f2657acE8";
-    // const SP_ADDRESS_TESTNET = "0x5FFf5A6c94b182fB965B40C7B9F30199b969eD2f";
-    // const GREENFIELD_EXECUTOR = "0xFa39D9111D927836b14D071d43e0aAD9cE83bBBf";
-    // const SCHEMA_REGISTRY = "0x5e905F77f59491F03eBB78c204986aaDEB0C6bDa"
-
-
-    //opbnb mainnet
-    // const TOKEN_HUB = "0x723987D45BA424D562b087eE032b8C27F2E7b689";
-    // const CROSS_CHAIN = "0x7E376AEFAF05E20e3eB5Ee5c08fE1B9832b175cE";
-    // const BUCKET_HUB = "0xDbf8aEcB0F697A5c71baA0C1470Ba8D7f0395018";
-    // const PERMISSION_HUB = "0x979876507F1395E5D391F9Dbef68468a22162B8D";
-    // const SP_ADDRESS_TESTNET = "0x5FFf5A6c94b182fB965B40C7B9F30199b969eD2f";
-    // const GREENFIELD_EXECUTOR = "0xdFc5DC31bfbf992C19C171db273A028736322Ec4";
-    // const SCHEMA_REGISTRY = "0x65CFBDf1EA0ACb7492Ecc1610cfBf79665DC631B"
-
-
     const [signer] = await ethers.getSigners();
     const Factory =  await ethers.getContractFactory("BucketFactory",signer);
 
@@ -152,7 +151,7 @@ async function createBucket(_bucketManager: string, name: string, schemaId:strin
         executorData, 
         callbackGasLimit,
         failureHandleStrategy,
-        sp_address,
+        SP_ADDRESS_TESTNET,
         {value: value })).wait();
     console.log(`https://testnet.bscscan.com/tx/${resp1?.hash}`);
 
@@ -287,9 +286,6 @@ async function topUpBNB(_bucketManager:string) {
     const tokenHub = await bucketManager.tokenHub()
     console.log(`token hub ${tokenHub}`)
 
-    
-
-
 
     const value = relayFee + ackRelayFee  + 100n
     const status = await bucketManager.topUpBNB(100,{value})
@@ -297,18 +293,16 @@ async function topUpBNB(_bucketManager:string) {
 }
 
 async function main() {
-    // const registry = await deployRegistry()
-    // const factory = await deployFactory(registry)
-    // await setFactoryAddressForRegistry(registry,factory)
+    const registry = await deployRegistry()
+    const factory = await deployFactory(registry)
+    await setFactoryAddressForRegistry(registry,factory)
 
-    // const salt = ethers.hashMessage("liubo5")
+    // const salt = ethers.hashMessage("liubo6")
     // const manager = await deployBucketManager(factory,salt)
 
     // await getControlledManagers(registry)
-    // await sleep(60)
+    await sleep(60)
 
-
-    await topUpBNB("0x87187c6eEF1D00145ea9f52c06C5bAC8CE50e9a3")
 
     // const registry = "0x69898E314B671357b74DCC4b14469F588884e10e"
     // const factory = "0xF46574d4B5AfbA81234CD04eFb24411798D7CE90"
@@ -326,7 +320,7 @@ async function main() {
     // await getBucketId(manager,registry,name,ZERO_BYTES32)
     // await sleep(60)
     // const policyHash1 = await createPolicy(manager,eoa,name,ZERO_BYTES32)
-    // await getPolicyStatus(manager,"0x2aee815d88bff1a64f6c6e5df3350f4ae1165d0a62e73e2290394dd0e9ef8815")
+    // await getPolicyStatus(manager,policyHash1)
 
     // //schema bucket
     // await createBucket(manager,name,schemaId)

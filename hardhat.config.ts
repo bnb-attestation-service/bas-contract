@@ -6,7 +6,6 @@ import "@nomicfoundation/hardhat-verify";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@openzeppelin/hardhat-upgrades";
 
-
 import * as dotenv from "dotenv";
 dotenv.config();
 
@@ -20,7 +19,7 @@ const OPBNB_TEST_RPC = process.env.OPBNB_TEST_RPC as string
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: '0.8.19',
+    version: '0.8.20',
     settings: {
       optimizer: {
         enabled: true,
@@ -62,6 +61,7 @@ const config: HardhatUserConfig = {
   },
   etherscan:{
     apiKey: {
+        bsc:API_KEY,
         opBNB:API_KEY,
         "opBNB-test":API_KEY
     },

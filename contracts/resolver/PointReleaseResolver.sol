@@ -9,16 +9,10 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 
-interface IIndexer {
-   function indexAttestation(bytes32 attestationUID) external;
-}
-
-
 contract PointReleaseResolver is ISchemaResolver,Initializable,OwnableUpgradeable {
     address public _faucet;
     address public _basPoint;
     IBAS public _bas;
-    IIndexer public _indexer;
     mapping(address=>bool) public _validAttestor ;
     mapping(bytes32=>uint256) public _taskPoints;
     // mapping(address => mapping(bytes32=>bool)) _userFinishedTasks;
@@ -27,7 +21,6 @@ contract PointReleaseResolver is ISchemaResolver,Initializable,OwnableUpgradeabl
         address faucet,
         address  basPoint, 
         IBAS bas, 
-        IIndexer indexer,
         address[] memory validAttestors,
         bytes32[] memory taskSchemaId,
         uint256[] memory taskPoints) public initializer{
@@ -37,7 +30,6 @@ contract PointReleaseResolver is ISchemaResolver,Initializable,OwnableUpgradeabl
         _basPoint = basPoint;
         _bas = bas;
         _faucet = faucet;
-        _indexer = indexer;
 
 
         for (uint256 i = 0; i < validAttestors.length; i++){
@@ -122,9 +114,12 @@ contract PointReleaseResolver is ISchemaResolver,Initializable,OwnableUpgradeabl
         return true;
     }
 
+    function updateIncentiveContract(address point) external onlyOwner {
+        _basPoint = point;
+    }
+    
     function onAttest(Attestation calldata attestation) internal returns (bool) {
         if (_validAttestor[attestation.attester] == true && _taskPoints[attestation.schema] > 0) {
-             _indexer.indexAttestation(attestation.uid);
              IERC20(_basPoint).transferFrom(_faucet, attestation.recipient,_taskPoints[attestation.schema]);
             //require(_userFinishedTasks[attestation.recipient][attestation.schema] == false,"The recipent has finished the task");
             //_userFinishedTasks[attestation.recipient][attestation.schema] == true;

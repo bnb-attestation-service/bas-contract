@@ -1,29 +1,34 @@
 import { ZeroAddress,solidityPackedKeccak256 }  from  "ethers";
 
 export const SCHEMAS = [
+  { schema: 'string verifiedCountry', name: 'Verified Coinbase Country'},
+  { schema: 'bool verifiedAccount', name: 'Verified Coinbase Account' }
+
     // { schema: 'bytes32 schemaId,string name', name: 'Name a Schema' },
     // { schema: 'bytes32 schemaId,string description', name: 'Schema Description' },
     // { schema: 'bytes32 schemaId,string context', name: 'Schema Context' },
     // { schema: 'bytes32 schemaId,[]string attestor', name: 'Valid Schema Attestors' },
 
-    {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool bnSpotVolumeLe100U",name:"BN Spot Volume > 100U", point: 200},
-    {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool bnKYCUser",name:"BN KYC User", point: 100},
-    {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool bnBalanceLe100U",name:"BN Balance > 100U", point: 200},
-    {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool bnFirstTxWithinOneWeek",name:"BN First Tx Within OneWeek", point: 300},
-    {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool okxKYCUser",name:"OKX KYC Account", point: 100},
-    {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool bybitKYCUser",name:"Bybit KYC Account", point: 100},
+    // {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool bnSpotVolumeLe100U",name:"BN Spot Volume > 100U", point: 200},
+    // {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool bnKYCUser",name:"BN KYC User", point: 100},
+    // {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool bnBalanceLe100U",name:"BN Balance > 100U", point: 200},
+    // {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool bnFirstTxWithinOneWeek",name:"BN First Tx Within OneWeek", point: 300},
+    // {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool okxKYCUser",name:"OKX KYC Account", point: 100},
+    // {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool bybitKYCUser",name:"Bybit KYC Account", point: 100},
 
-    {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool followBNBChainTwitter",name:"Follow BNB Chain Twitter", point: 50},
-    {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool followBASTwitter",name:"Follow BAS Twitter", point: 50},
-    {schema: "bool bnbOnChainLe1",name:"BNB on Chain > 1", point: 100},
+    // {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool followBNBChainTwitter",name:"Follow BNB Chain Twitter", point: 50},
+    // {schema: "bytes32 uHash,string source,bytes32 publicDataHash,bool followBASTwitter",name:"Follow BAS Twitter", point: 50},
+    // {schema: "bool bnbOnChainLe1",name:"BNB on Chain > 1", point: 100},
 
     
-    {schema: "bool tgOwnership",name:"TG Ownership", point: 50},
-    {schema: "bool tgMember",name:"TG Member", point: 50},
+    // {schema: "bool tgOwnership",name:"TG Ownership", point: 50},
+    // {schema: "bool tgMember",name:"TG Member", point: 50},
     
-    {schema: "bool voteOneTimes",name:"Vote One Times", point: 100},
-    {schema: "bool vote5Times",name:"Vote 5 Times", point: 200},
-    {schema: "bool vote10Times",name:"Vote 10 Times", point: 400},
+    // {schema: "bool voteOneTimes",name:"Vote One Times", point: 100},
+    // {schema: "bool vote5Times",name:"Vote 5 Times", point: 200},
+    // {schema: "bool vote10Times",name:"Vote 10 Times", point: 400},
+
+    // {schema:"string buidl_id,string buidl_name,string buidl_hash,string buidl_owner_address,uint256 vote,string grant_program_address,string grant_initiator,string grant_name,string grant_id", name:"Quadratic Voting", point: 0}
    
 
     // { schema: 'bool like', name: 'Like' },
@@ -147,7 +152,12 @@ export const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000
   
 export const NO_EXPIRATION = 0n;
 export const EIP712_PROXY_NAME = 'EIP712Proxy';
+
 export const EIP712_DOMAIN_NAME = "OPBNB ATTESTATION"
+
+export const EIP712_DEV_BSC_DOMAN_NAME = "BSC ATTESTATION DEV"
+
+export const EIP712_DEV_OPBNB_DOMAN_NAME = "OPBNB ATTESTATION DEV"
 
 export const getSchemaUID = (schema:string, resolverAddress:string, revocable:boolean) =>
   solidityPackedKeccak256(['string', 'address', 'bool'], [schema, resolverAddress, revocable]);
