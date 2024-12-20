@@ -99,11 +99,11 @@ contract BucketManager is Ownable {
 	) public payable onlyOwner returns (string memory) {
          // Verify if the schema exists
 		if (schemaId != bytes32(0)) {
-            require(schemaBuckets[schemaId][name] != Status.Pending && schemaBuckets[schemaId][name] != Status.Success ,"The bucket of the given schema and name has exsited");
+            require(schemaBuckets[schemaId][name] != Status.Pending && schemaBuckets[schemaId][name] != Status.Success ,"The bucket of the given schema and name has existed");
 		    SchemaRecord memory schema = ISchemaRegistry(schemaRegistry).getSchema(schemaId);
 		    require(schema.uid != bytes32(0),"Invalid schemaId");
         } else {
-            require(schemaBuckets[addressBytes32][name] != Status.Pending && schemaBuckets[addressBytes32][name] != Status.Success ,"The bucket of the given schema and name has exsited");
+            require(schemaBuckets[addressBytes32][name] != Status.Pending && schemaBuckets[addressBytes32][name] != Status.Success ,"The bucket of the given schema and name has existed");
         }
 
         string memory bucketName = _getName(name,schemaId);
@@ -131,7 +131,7 @@ contract BucketManager is Ownable {
         address sp_address
     ) internal {
 
-       (uint256 totalFee,uint256 relayFee,)  = _getTotelFee(_callbackGasLimit);
+       (uint256 totalFee,uint256 relayFee,)  = _getTotalFee(_callbackGasLimit);
        if (_executorData.length > 0) {
          // 2. set bucket flow rate limit
             uint8[] memory _msgTypes = new uint8[](1);
@@ -139,10 +139,10 @@ contract BucketManager is Ownable {
             bytes[] memory _msgBytes = new bytes[](1);
             _msgBytes[0] = _executorData;
             IGreenfieldExecutor(greenfield_executor).execute{ value: relayFee }(_msgTypes, _msgBytes);
-            require(msg.value >= totalFee+relayFee,"create bucket insufficent value with execution" );
+            require(msg.value >= totalFee+relayFee,"create bucket insufficient value with execution" );
        }
 
-       require(msg.value >= totalFee,"create bucket insufficent value" );
+       require(msg.value >= totalFee,"create bucket insufficient value" );
 
         // 3. create bucket, owner = address(this)
         BucketStorage.CreateBucketSynPackage memory createPackage = BucketStorage.CreateBucketSynPackage({
@@ -154,7 +154,7 @@ contract BucketManager is Ownable {
             primarySpApprovalExpiredHeight: 0,
             globalVirtualGroupFamilyId: 1,
             primarySpSignature: new bytes(0),
-            chargedReadQuota: 10485760000,
+            chargedReadQuota: 1048576000,
             extraData: new bytes(0)
         });
 
@@ -204,8 +204,8 @@ contract BucketManager is Ownable {
                 callbackData: _callbackData
             });
 
-            (uint256 totalFee,,) = _getTotelFee(_callbackGasLimit);
-            require(msg.value >= totalFee,"create policy insufficent value" );
+            (uint256 totalFee,,) = _getTotalFee(_callbackGasLimit);
+            require(msg.value >= totalFee,"create policy insufficient value" );
             IPermissionHub(permission_hub).createPolicy{ value: totalFee }(createPolicyData,_extraData); 
             policies[dataHash] == Status.Pending;
         }
@@ -314,7 +314,7 @@ contract BucketManager is Ownable {
         emit CreatePolicy(bucketName, dataHash, status);  
     }   
 
-    function _getTotelFee(uint256 _callbackGasLimit) internal returns (uint256 totalFee,uint256 relayFee,uint256 minAckRelayFee) {
+    function _getTotalFee(uint256 _callbackGasLimit) internal returns (uint256 totalFee,uint256 relayFee,uint256 minAckRelayFee) {
         (relayFee, minAckRelayFee) = ICrossChain(cross_chain).getRelayFees();
         uint256 gasPrice = ICrossChain(cross_chain).callbackGasPrice();
         return (relayFee + minAckRelayFee + _callbackGasLimit * gasPrice,relayFee, minAckRelayFee);

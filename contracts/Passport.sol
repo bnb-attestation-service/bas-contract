@@ -9,20 +9,14 @@ import {AttestationRequest} from "./IEAS.sol";
 import {DelegatedProxyAttestationRequest} from "./eip712/proxy/EIP712Proxy.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
-enum FailureHandleStrategy {
-        BlockOnFail, // If a package fails, the subsequent SYN packages will be blocked until the failed ACK packages are handled in the order they were received.
-        CacheOnFail, // When a package fails, it is cached for later handling. New SYN packages will continue to be handled normally.
-        SkipOnFail // Failed ACK packages are ignored and will not affect subsequent SYN packages.
-    }
 
-interface IBucketFactory {
-    function deploy(uint256 transferOutAmount,bytes32 _salt) external payable;
+interface IManager{
+   function transferOwnership(address newOwner) external;
 }
 
-interface IManageContract{
-    function getName(string memory name, bytes32 schemaId) external view returns (string memory);
-    function createBucket(string memory name,bytes32 schemaId, bytes memory _executorData,uint256 _callbackGasLimit,FailureHandleStrategy _failureHandleStrategy,address sp_address) external payable returns (string memory);
-    function createPolicy(string memory name,bytes32 schemaId, bytes memory createPolicyData,uint256 _callbackGasLimit,FailureHandleStrategy _failureHandleStrategy) external payable;
+interface IBucketRegistry{
+    function getBucketManagerAt(address controller, uint256 index)  external view returns (address);
+    function controlledManagerAmount(address controller) external view returns (uint256);
 }
 
 interface IBAS {
@@ -56,36 +50,35 @@ contract Passport is Initializable, OwnableUpgradeable{
     uint256 public createBucketFee;
     uint256 public bank;
     IBAS public bas;
+    IBucketRegistry public bucketRegistry;
     IVerifier public verifier;
 
     bytes32 public passport;
 
     mapping(address=>AttestationType) public mint_passport;
     mapping(address=>AttestResult[]) public mint_result;
-    mapping(uint256=>uint64)invited_amount;
-    mapping(uint256=>uint256)invite_code_discount;
-    mapping(address=>uint256)user_invited_codes;
+    mapping(uint256=>uint64) public invited_amount;
+    mapping(uint256=>uint256) public invite_code_discount;
+    mapping(address=>uint256) public user_invited_codes;
     mapping(uint256=>address[]) public invite_code_users;
     mapping(uint256=>uint256) public invite_code_incomes;
 
     mapping(bytes32=>uint256)mint_fees;
     mapping(bytes32=>address)validate_attestors;
 
-    IBucketFactory public bucketFactory;
-    // EnumerableSet.AddressSet managers;
-    // mapping(address=>bool) buckets;
-    // mapping(address=>bool) policies;
+
     
     event MintOffChainPassport(address indexed recipient);
     event MintOffChain(address indexed recipient,bytes32 schemaId,DelegatedProxyAttestationRequest request);
 
-    function initialize(IBAS _bas,uint256 _createBucketFee,bytes32 _passport, IVerifier _verifier,IBucketFactory _bucketFactory) public initializer {
+    function initialize(IBAS _bas,uint256 _createBucketFee,bytes32 _passport, IVerifier _verifier,IBucketRegistry _bucketRegistry) public initializer {
         __Ownable_init();
         bas = _bas;
         createBucketFee = _createBucketFee;
         passport = _passport;
         verifier = _verifier;
-        bucketFactory = _bucketFactory;
+        bucketRegistry = _bucketRegistry;
+
     }
 
     function setInviteCode(uint256[] calldata invite_code, uint256[] calldata _invite_code_discount ) external onlyOwner {
@@ -148,6 +141,10 @@ contract Passport is Initializable, OwnableUpgradeable{
              require(msg.value >= createBucketFee,"insufficient fund");
              bank += (msg.value);
              emit MintOffChainPassport(request.data.recipient);
+             uint256 managerAmount = bucketRegistry.controlledManagerAmount(address(this));
+             require(managerAmount != 0,"bucker has been sold out, try later again please");
+             address manager = bucketRegistry.getBucketManagerAt(address(this), 0);
+             IManager(manager).transferOwnership(request.data.recipient);
         }
 
        
@@ -157,8 +154,6 @@ contract Passport is Initializable, OwnableUpgradeable{
             invited_amount[invite_code]++;
             invite_code_users[invite_code].push(request.data.recipient);
         }
-
-        //todo: transfer bucket manager to msg.sender
     }
 
     function mint(DelegatedProxyAttestationRequest calldata request, AttestationType _type) external payable {
@@ -189,23 +184,5 @@ contract Passport is Initializable, OwnableUpgradeable{
             emit MintOffChain(recipient, request.schema, request);
         }
         mint_result[recipient].push(AttestResult(schemaId, _type));
-    }
-
-     function deployManager(uint256 transferOutAmount,bytes32 _salt) external payable{
-        bucketFactory.deploy{value:msg.value}(transferOutAmount,_salt);
-     }
-
-    function createBucket(address manager,string calldata name,bytes32 schemaId, bytes calldata _executorData,uint256 _callbackGasLimit,FailureHandleStrategy _failureHandleStrategy,address sp_address) external payable onlyOwner{
-        // require(!buckets[manager],"the manager has created bucket");
-        IManageContract(manager).createBucket{value: msg.value}(name, schemaId, _executorData, _callbackGasLimit, _failureHandleStrategy, sp_address);
-        // buckets[manager] = true;
-    }
-
-    function createPolity(address manager,string memory name,bytes32 schemaId, bytes calldata createPolicyData,uint256 _callbackGasLimit,FailureHandleStrategy _failureHandleStrategy) external payable onlyOwner{
-        // require(buckets[manager],"the manager does not create bucket");
-        // require(!policies[manager],"the manager has created policy");
-        IManageContract(manager).createPolicy{value:msg.value}(name, schemaId, createPolicyData, _callbackGasLimit, _failureHandleStrategy);
-        // policies[manager] = true;
-        // managers.add(manager);
     }
 }

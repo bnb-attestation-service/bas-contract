@@ -2,43 +2,25 @@
 
 pragma solidity ^0.8.19;
 
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import "./ISchemaResolver.sol";
 import { IEAS as IBAS, Attestation } from "../IEAS.sol";
-import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 
 contract PointReleaseResolver is ISchemaResolver,Initializable,OwnableUpgradeable {
-    address public _faucet;
-    address public _basPoint;
+    using Address for address payable;
+
     IBAS public _bas;
-    mapping(address=>bool) public _validAttestor ;
+    uint256 public _bank;
+    mapping(bytes32=>address) public _validAttestor ;
     mapping(bytes32=>uint256) public _taskPoints;
     // mapping(address => mapping(bytes32=>bool)) _userFinishedTasks;
 
-    function initialize(
-        address faucet,
-        address  basPoint, 
-        IBAS bas, 
-        address[] memory validAttestors,
-        bytes32[] memory taskSchemaId,
-        uint256[] memory taskPoints) public initializer{
+    function initialize(IBAS bas) public initializer{
         __Ownable_init();
-        require(taskSchemaId.length == taskPoints.length,"Invalid task point params");
-
-        _basPoint = basPoint;
         _bas = bas;
-        _faucet = faucet;
-
-
-        for (uint256 i = 0; i < validAttestors.length; i++){
-            _validAttestor[validAttestors[i]] = true;
-        }
-
-        for (uint256 i =0;i < taskSchemaId.length;i++){
-            _taskPoints[taskSchemaId[i]] = taskPoints[i];
-        }
     }
 
     modifier onlyBAS() {
@@ -46,16 +28,14 @@ contract PointReleaseResolver is ISchemaResolver,Initializable,OwnableUpgradeabl
         _;
     }
 
-    function addValidAttestor(address _attestor) external onlyOwner {
-        _validAttestor[_attestor] = true;
-    }
+    function updateTaskPoint(
+        address[] memory validAttestors,
+        bytes32[] memory taskSchemaId,
+        uint256[] memory taskPoints) external onlyOwner{
+        require(taskSchemaId.length == taskPoints.length && taskPoints.length == validAttestors.length,"Invalid task point params");
 
-    function deleteValidAttestor(address _attestor) external onlyOwner {
-        delete _validAttestor[_attestor];
-    }
-
-    function updateTaskPoint( bytes32[] memory taskSchemaId,uint256[] memory taskPoints) external onlyOwner{
-        for (uint256 i =0;i < taskSchemaId.length;i++){
+        for (uint256 i = 0; i < validAttestors.length; i++){
+            _validAttestor[taskSchemaId[i]] = validAttestors[i];
             _taskPoints[taskSchemaId[i]] = taskPoints[i];
         }
     }
@@ -63,18 +43,43 @@ contract PointReleaseResolver is ISchemaResolver,Initializable,OwnableUpgradeabl
     function deleteTasks(bytes32[] memory taskSchemaId) external onlyOwner{
          for (uint256 i =0;i < taskSchemaId.length;i++){
             delete _taskPoints[taskSchemaId[i]];
+            delete _validAttestor[taskSchemaId[i]];
         }
     }
 
+    function withdraw(uint256 amount,address to) external onlyOwner(){
+        if (amount > 0) {
+            payable(to).sendValue(amount);
+            _bank-=amount;
+        } else{
+             payable(to).sendValue(_bank);
+             _bank = 0;
+        }
+    } 
+
     function isPayable() external pure returns (bool) {
-        return false;
+        return true;
     }
 
     /// @notice Processes an attestation and verifies whether it's valid.
     /// @param attestation The new attestation.
     /// @return Whether the attestation is valid.
     function attest(Attestation calldata attestation) external payable returns (bool) {
-        return onAttest(attestation);
+        return(onAttest(attestation, msg.value));
+    }
+
+    function onAttest(Attestation calldata attestation,uint256 value) internal returns (bool){
+        address validAttestor = _validAttestor[attestation.schema];
+        uint256 gasFee = _taskPoints[attestation.schema];
+        require(value >= gasFee, "insufficient fund");
+        require(validAttestor == attestation.attester || validAttestor == address(0),"invalid attester");
+        // if (value >= gasFee) {
+        //     payable(address(attestation.recipient)).sendValue(value - gasFee);
+        // }
+        if (gasFee >0) {
+            _bank+=gasFee;
+        }
+        return true;
     }
 
     /// @notice Processes multiple attestations and verifies whether they are valid.
@@ -82,14 +87,22 @@ contract PointReleaseResolver is ISchemaResolver,Initializable,OwnableUpgradeabl
     /// @return Whether all the attestations are valid.
     function multiAttest(
         Attestation[] calldata attestations,
-        uint256[] calldata /*values*/
+        uint256[] calldata values
     ) external payable returns (bool){
+        require(attestations.length == values.length, "Invalid length"); 
+        uint256 remainingValue = msg.value;
+
         for (uint256 i = 0; i < attestations.length; i++) {
-            // Forward the attestation to the underlying resolver and return false in case it isn't approved.
-            if (!onAttest(attestations[i])) {
+            uint256 value = values[i];
+            require(value < remainingValue,"insufficient value");
+            if (!onAttest(attestations[i], value)) {
                 return false;
             }
+            unchecked {
+                remainingValue -= value;
+            }
         }
+        _bank+=msg.value;
         return true;
     }
 
@@ -114,21 +127,12 @@ contract PointReleaseResolver is ISchemaResolver,Initializable,OwnableUpgradeabl
         return true;
     }
 
-    function updateIncentiveContract(address point) external onlyOwner {
-        _basPoint = point;
-    }
-    
-    function onAttest(Attestation calldata attestation) internal returns (bool) {
-        if (_validAttestor[attestation.attester] == true && _taskPoints[attestation.schema] > 0) {
-             IERC20(_basPoint).transferFrom(_faucet, attestation.recipient,_taskPoints[attestation.schema]);
-            //require(_userFinishedTasks[attestation.recipient][attestation.schema] == false,"The recipent has finished the task");
-            //_userFinishedTasks[attestation.recipient][attestation.schema] == true;
-        }
-        return true;
-    }
 
     function onRevoke(Attestation calldata /*attestation*/) internal pure returns (bool){
         return false;
     }
 
+    function getMintFee(bytes32 schemaId) external view returns (uint256) {
+        return _taskPoints[schemaId];
+    }
 }

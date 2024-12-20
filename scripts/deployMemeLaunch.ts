@@ -1,5 +1,4 @@
 import  {ethers,upgrades} from "hardhat";
-import  {BASPoint__factory } from "../typechain-types/factories/contracts/BAS.sol";
 import  {MemeLaunch__factory } from "../typechain-types/factories/contracts/MemeLaunch__factory";
 import {SignatureStruct} from "../typechain-types/contracts/MemeLaunch"
 import  {SCHEMAS,getSchemaUID,NO_EXPIRATION,ZERO_BYTES32, ZERO_ADDRESS} from "./utils";
@@ -11,21 +10,21 @@ import initSchemaName from "./4-initName";
 import { bigint } from "hardhat/internal/core/params/argumentTypes";
 
 
-async function deployERC20Point() {
-    const [signer] = await ethers.getSigners();
-    // console.log('Deploy Point ERC20 contract with account:',signer.address);
+// async function deployERC20Point() {
+//     const [signer] = await ethers.getSigners();
+//     // console.log('Deploy Point ERC20 contract with account:',signer.address);
 
-    const Point = await ethers.getContractFactory("BASPoint",signer)
-    const point = await Point.deploy()
+//     const Point = await ethers.getContractFactory("BASPoint",signer)
+//     const point = await Point.deploy()
 
-    await point.waitForDeployment();
-    const addr = await point.getAddress();
-    console.log('BAS ETC20 Point Contract Address:', addr)
+//     await point.waitForDeployment();
+//     const addr = await point.getAddress();
+//     console.log('BAS ETC20 Point Contract Address:', addr)
 
-    const decimals:bigint = await point.decimals()
-    return [decimals,addr]
+//     const decimals:bigint = await point.decimals()
+//     return [decimals,addr]
 
-}
+// }
 
 async function deployMemeLaunch(faucet:string,validator:string,meme:string,taskSchemaIds:string[],taskPoints: bigint[] ){
     const [signer] = await ethers.getSigners();
@@ -70,13 +69,13 @@ async function setValidator(memeLaunchAddr : string, addr: string) {
     console.log(`set validator in tx ${resp.hash}`);
 }
 
-async function approveToMemeLaunch(memeLaunchAddr:string, ercPoint:string, value: bigint) {
-    const [signer] = await ethers.getSigners();
-    const point = BASPoint__factory.connect(ercPoint,signer)
-    const resp = await point.approve(memeLaunchAddr,value)
-    await resp.wait()
-    console.log(`approve ${value} BAS point to ${memeLaunchAddr} in tx ${resp.hash}`);
-}
+// async function approveToMemeLaunch(memeLaunchAddr:string, ercPoint:string, value: bigint) {
+//     const [signer] = await ethers.getSigners();
+//     const point = BASPoint__factory.connect(ercPoint,signer)
+//     const resp = await point.approve(memeLaunchAddr,value)
+//     await resp.wait()
+//     console.log(`approve ${value} BAS point to ${memeLaunchAddr} in tx ${resp.hash}`);
+// }
 
 function getSchemaIdAndPoint(decimals:bigint,resolver: string,revocable:boolean) {
     var schemaIds = new Array()
@@ -107,15 +106,15 @@ async function getSchemaIdAndTask(memeLaunchAddr : string,schemaId:string) {
 
 }
 
-async function getBalance(meme:string, memelaunch:string,reciepent: string, faucet:string) {
-    const [signer] = await ethers.getSigners();
-    const point = BASPoint__factory.connect(meme,signer)
-    const balance = await point.balanceOf(reciepent)
-    console.log("balance:",balance)
+// async function getBalance(meme:string, memelaunch:string,reciepent: string, faucet:string) {
+//     const [signer] = await ethers.getSigners();
+//     const point = BASPoint__factory.connect(meme,signer)
+//     const balance = await point.balanceOf(reciepent)
+//     console.log("balance:",balance)
 
-    const allowance = await point.allowance(faucet,memelaunch)
-    console.log("allowance:",allowance)
-}
+//     const allowance = await point.allowance(faucet,memelaunch)
+//     console.log("allowance:",allowance)
+// }
 
 async function getSchemaId(schemaRegistry:string, uid :string) {
     const [signer] = await ethers.getSigners();

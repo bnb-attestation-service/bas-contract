@@ -77,7 +77,9 @@ contract BucketFactory is Initializable{
             version
         );
         emit CreateBucketManager(msg.sender, address(bucketManager));
-        bucketManager.topUpBNB{value:msg.value}(transferOutAmount);
+        if (transferOutAmount > 0) {
+            bucketManager.topUpBNB{value:msg.value}(transferOutAmount);
+        }
         return address(bucketManager);
     }
 

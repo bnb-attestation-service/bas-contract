@@ -453,4 +453,14 @@ contract EIP712Proxy is Semver, EIP712 {
     function _time() internal view virtual returns (uint64) {
         return uint64(block.timestamp);
     }
+
+    function verifyAttestation(DelegatedProxyAttestationRequest memory request) external returns (bool){
+        _verifyAttest(request);
+        return true;
+    }
+
+    function verifyRevocation(DelegatedProxyRevocationRequest memory request) external returns (bool){
+        _verifyRevoke(request);
+        return true;
+    }
 }

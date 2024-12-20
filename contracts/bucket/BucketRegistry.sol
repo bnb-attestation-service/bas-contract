@@ -15,7 +15,7 @@ contract BucketRegistry is Initializable,AccessControl {
 
     using EnumerableSet for EnumerableSet.AddressSet;
     modifier isBucketManager() {
-        require(registedBuckeManageContracts.contains(msg.sender),"Caller is not a bucket manager contract");
+        require(registeredBucketManageContracts.contains(msg.sender),"Caller is not a bucket manager contract");
         _;
     }
 
@@ -24,7 +24,7 @@ contract BucketRegistry is Initializable,AccessControl {
 
     //created bucket name => bucket Id
     mapping(string => uint256) public bucketsNames;
-    EnumerableSet.AddressSet private registedBuckeManageContracts;
+    EnumerableSet.AddressSet private registeredBucketManageContracts;
     
     address public bucketFactory;
     function initialize() public initializer {
@@ -40,7 +40,7 @@ contract BucketRegistry is Initializable,AccessControl {
     }
 
     function addBucketManager(address bucketManager) external onlyRole(OPERATOR_ROLE) {
-        registedBuckeManageContracts.add(bucketManager);
+        registeredBucketManageContracts.add(bucketManager);
     }
 
     function existBucketName(string memory bucketName) external view returns (bool){
@@ -78,18 +78,18 @@ contract BucketRegistry is Initializable,AccessControl {
     }
 
     function registeredManagerAmount() public view returns (uint256) {
-        return registedBuckeManageContracts.length();
+        return registeredBucketManageContracts.length();
     }
 
     function getRegisteredManagers() public view returns (address[] memory) {
-        return registedBuckeManageContracts.values();
+        return registeredBucketManageContracts.values();
     }
 
     function getRegisteredManagerAt(uint256 index) public view returns (address) {
-        return registedBuckeManageContracts.at(index);
+        return registeredBucketManageContracts.at(index);
     }
 
     function registered(address manager)public view returns (bool) {
-        return registedBuckeManageContracts.contains(manager);
+        return registeredBucketManageContracts.contains(manager);
     }
 }

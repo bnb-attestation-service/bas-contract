@@ -1,8 +1,9 @@
 import { ZeroAddress,solidityPackedKeccak256 }  from  "ethers";
 
 export const SCHEMAS = [
-  { schema: 'string verifiedCountry', name: 'Verified Coinbase Country'},
-  { schema: 'bool verifiedAccount', name: 'Verified Coinbase Account' }
+  {schema: 'bool passport',name: 'BNB Passport',point: 1_000_000,validator: '0x0000000000000000000000000000000000000000'}
+  // { schema: 'string verifiedCountry', name: 'Verified Coinbase Country'},
+  // { schema: 'bool verifiedAccount', name: 'Verified Coinbase Account' }
 
     // { schema: 'bytes32 schemaId,string name', name: 'Name a Schema' },
     // { schema: 'bytes32 schemaId,string description', name: 'Schema Description' },
@@ -151,6 +152,8 @@ export const ZERO_BYTES = '0x';
 export const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
   
 export const NO_EXPIRATION = 0n;
+
+export const EIP712_BNB_DOMAIN_NAME = 'BNB Attestation'
 export const EIP712_PROXY_NAME = 'EIP712Proxy';
 
 export const EIP712_DOMAIN_NAME = "OPBNB ATTESTATION"
