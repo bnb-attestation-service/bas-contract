@@ -13,7 +13,7 @@ import {
    PrincipalType,
 } from '@bnb-chain/greenfield-cosmos-types/greenfield/permission/common';
 import { ZERO_BYTES32 } from "../utils";
-import { zeroPadBytes } from "ethers";
+import { ContractRunner, zeroPadBytes } from "ethers";
 import { string } from "hardhat/internal/core/params/argumentTypes";
 
 const callbackGasLimit = 200000n
@@ -90,7 +90,7 @@ export async function deployFactory(bucketRegistry: string) {
 
 export async function setFactoryAddressForRegistry(_registry: string,_factory:string) {
     const [signer] = await ethers.getSigners();
-    const registry = BucketRegistry__factory.connect(_registry,signer)
+    const registry = BucketRegistry__factory.connect(_registry, signer as unknown as ContractRunner)
     const resp = await registry.setBucketFactory(_factory);
     await resp.wait()
     console.log(`set bucket factory address to ${_factory} in tx ${resp.hash}`);
@@ -99,7 +99,7 @@ export async function setFactoryAddressForRegistry(_registry: string,_factory:st
 export async function deployBucketManager(_factory: string,salt: string, _transferOutAmt: string) {
     const [signer] = await ethers.getSigners();
     
-    const factory = BucketFactory__factory.connect(_factory,signer)
+    const factory = BucketFactory__factory.connect(_factory, signer as unknown as ContractRunner)
 
     const CROSS_CHAIN = await factory.cross_chain();
     const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN));
@@ -129,7 +129,7 @@ export async function createBucket(_bucketManager: string, name: string, schemaI
     const client = Client.create(GRPC_URL, GREEN_CHAIN_ID);
 
     const [signer] = await ethers.getSigners();
-    const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
+    const bucketManager = BucketManager__factory.connect(_bucketManager,  signer as unknown as ContractRunner)
 
     const CROSS_CHAIN = await bucketManager.cross_chain();
     const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN));
@@ -187,7 +187,7 @@ export function getExecDataStr(bucketName:string,_bucketManager:string) {
 
 export async function getBucketStatus(_bucketManager: string, name: string, schemaId:string) {
     const [signer] = await ethers.getSigners();
-    const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
+    const bucketManager = BucketManager__factory.connect(_bucketManager,  signer as unknown as ContractRunner)
     const status = await bucketManager.getBucketStatus(schemaId,name)
     const bucketName = await bucketManager.getName(name,schemaId)
     console.log(`Status of bucket ${bucketName} is ${status}`)
@@ -196,9 +196,9 @@ export async function getBucketStatus(_bucketManager: string, name: string, sche
 
 export async function getBucketId(_bucketManager: string,_registry: string,name: string, schemaId:string) {
     const [signer] = await ethers.getSigners();
-    const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
+    const bucketManager = BucketManager__factory.connect(_bucketManager,  signer as unknown as ContractRunner)
     const userBucketName = await bucketManager.getName(name,schemaId);
-    const registry = BucketRegistry__factory.connect(_registry,signer)
+    const registry = BucketRegistry__factory.connect(_registry, signer as unknown as ContractRunner)
 
     const id = await registry.bucketsNames(userBucketName)
     console.log(`ID of bucket ${userBucketName} is ${id}`)
@@ -207,7 +207,7 @@ export async function getBucketId(_bucketManager: string,_registry: string,name:
 
 export async function createPolicy(_bucketManager: string ,eoa : string, name: string, schemaId:string) {
     const [signer] = await ethers.getSigners();
-    const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
+    const bucketManager = BucketManager__factory.connect(_bucketManager,  signer as unknown as ContractRunner)
 
     const GRPC_URL = 'https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org';
     const GREEN_CHAIN_ID = 'greenfield_5600-1';
@@ -264,7 +264,7 @@ export async function createPolicy(_bucketManager: string ,eoa : string, name: s
 
 export async function getPolicyStatus(_bucketManager: string, _hash :string) {
     const [signer] = await ethers.getSigners();
-    const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
+    const bucketManager = BucketManager__factory.connect(_bucketManager,  signer as unknown as ContractRunner)
 
     const status = await bucketManager.getPolicyStatus(_hash)
     console.log(`Status of Policy ${_hash} is ${status}`)
@@ -278,7 +278,7 @@ export async function sleep(seconds: number) {
 
 export async function getControlledManagers(_registry: string, controller: string) {
     const [signer] = await ethers.getSigners();
-    const registry = BucketRegistry__factory.connect(_registry,signer)
+    const registry = BucketRegistry__factory.connect(_registry, signer as unknown as ContractRunner)
 
     const managers = await registry.getBucketManagers(controller)
     console.log(`Bucket Managers of ${controller} are ${managers}`)
@@ -293,7 +293,7 @@ export async function topUpBNB(_bucketManager:string) {
     const client = Client.create(GRPC_URL, GREEN_CHAIN_ID);
 
     const [signer] = await ethers.getSigners();
-    const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
+    const bucketManager = BucketManager__factory.connect(_bucketManager,  signer as unknown as ContractRunner)
 
     const CROSS_CHAIN = await bucketManager.cross_chain();
     const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN));
@@ -313,7 +313,7 @@ export async function topUpBNB(_bucketManager:string) {
 
 export async function transferOwnership(_bucketManager:string, to : string){
     const [signer] = await ethers.getSigners();
-    const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
+    const bucketManager = BucketManager__factory.connect(_bucketManager,  signer as unknown as ContractRunner)
     const resp = await bucketManager.transferOwnership(to)
     resp.wait()
     console.log(`transfer ownership to ${to} at tx ${resp.hash}`)
@@ -321,7 +321,7 @@ export async function transferOwnership(_bucketManager:string, to : string){
 
 export async function hashPolicy(_bucketManager: string, eoa:string, name:string,schemaId:string) {
     const [signer] = await ethers.getSigners();
-    const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
+    const bucketManager = BucketManager__factory.connect(_bucketManager,  signer as unknown as ContractRunner)
     const GRPC_URL = 'https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org';
     const GREEN_CHAIN_ID = 'greenfield_5600-1';
     const client = Client.create(GRPC_URL, GREEN_CHAIN_ID);
@@ -363,14 +363,14 @@ export async function hashPolicy(_bucketManager: string, eoa:string, name:string
 
 export async function getManagerAmount(_registry:string, to:string) {
     const [signer] = await ethers.getSigners();
-    const registry = BucketRegistry__factory.connect(_registry,signer)
+    const registry = BucketRegistry__factory.connect(_registry, signer as unknown as ContractRunner)
     const amount = registry.controlledManagerAmount(to)
     return amount
 }
 
 export async function ownership(_bucketManager:string) {
     const [signer] = await ethers.getSigners();
-    const bucketManager = BucketManager__factory.connect(_bucketManager, signer)
+    const bucketManager = BucketManager__factory.connect(_bucketManager,  signer as unknown as ContractRunner)
     const owner = await bucketManager.owner()
     console.log(`ownership of manager ${_bucketManager} is ${owner}`)
 }

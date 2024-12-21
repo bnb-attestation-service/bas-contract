@@ -1,9 +1,17 @@
 {
   "name": "hardhat-project",
+  "scripts": {
+    "createManager": "ts-node scripts/createManager.ts"
+  },
   "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.6",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "@nomiclabs/hardhat-solhint": "^4.0.0",
     "@openzeppelin/contracts": "^4.9.6",
-    "@openzeppelin/hardhat-upgrades": "^3.1.1",
+    "@openzeppelin/hardhat-upgrades": "^3.8.0",
+    "@types/node": "^22.10.2",
+    "ethers": "^6.13.4",
     "hardhat": "^2.22.6"
   },
   "dependencies": {
@@ -13,8 +21,10 @@
     "@bnb-chain/greenfield-cosmos-types": "^0.4.0",
     "@bnb-chain/greenfield-js-sdk": "^2.0.1",
     "@lazyledger/protobuf3-solidity-lib": "^0.6.0",
+    "@openzeppelin/contracts-upgradeable": "^5.1.0",
     "@typechain/ethers-v6": "^0.5.1",
     "@typechain/hardhat": "^9.1.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "typescript": "^5.7.2"
   }
 }

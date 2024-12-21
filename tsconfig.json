@@ -1,11 +1,23 @@
 {
   "compilerOptions": {
-    "target": "es2020",
-    "module": "commonjs",
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
+    "target": "ESNext",
+    "lib": ["dom", "esnext"],
+    "moduleResolution": "node",
+    "module": "CommonJS",
     "strict": true,
+    "esModuleInterop": true,
+    "sourceMap": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true
-  }
+    "forceConsistentCasingInFileNames": true,
+    "types": ["hardhat", "node"], // Ensure this line is included
+    "baseUrl": "./",
+    "paths": {
+      "@nomiclabs/hardhat-ethers/*": [
+        "node_modules/@nomiclabs/hardhat-ethers/dist/src/*"
+      ],
+      "*": ["node_modules/*"]
+    },
+    "outDir": "./dist/typechain-types"
+  },
+  "include": ["scripts", "test", "hardhat.config.ts", "./typechain-types"]
 }

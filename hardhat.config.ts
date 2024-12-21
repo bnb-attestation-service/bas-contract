@@ -5,6 +5,7 @@ import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-verify";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@openzeppelin/hardhat-upgrades";
+import "@nomiclabs/hardhat-ethers"; // Ensure this line is present
 
 import * as dotenv from "dotenv";
 dotenv.config();
