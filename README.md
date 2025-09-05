@@ -1,4 +1,6 @@
-# BAS Contract
+# BNB Attestation Service
+
+The BNB Attestation Service (BAS) is an infrastructure built on the BNB ecosystem for generating attestation to verify information. BAS assists users in on-chain or off-chain verification, allowing them to assert ownership of attestation by storing them in Greenfield. This approach ensures data privacy and access control.
 
 The contracts of BAS are forked from [EAS](https://github.com/ethereum-attestation-service/eas-contracts).
 
@@ -21,7 +23,20 @@ The contracts of BAS are forked from [EAS](https://github.com/ethereum-attestati
         npx hardhat run scripts/deploy.ts --network bnb-test #deploy in bnb testnet
     ```
 
-## Contract
+## Technology Stack
+
+- Blockchain: BNB Smart Chain
+- Smart Contracts: Solidity ^0.x.x
+- Development: Hardhat, OpenZeppelin libraries
+
+## Supported Networks
+
+- BNB Smart Chain Mainnet (Chain ID: 56)
+- BNB Smart Chain Testnet (Chain ID: 97)
+- OPBNB Mainnet (Chain ID: 204)
+- OPBNB Testnet (Chain ID: 5611)
+
+## Contract Address
 
 Current deployed contracts are:
 
